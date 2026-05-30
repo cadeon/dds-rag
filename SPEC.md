@@ -25,17 +25,17 @@ A retrieval-augmented generation (RAG) system that uses Dewey Decimal Classifica
 ### Query Pipeline
 
 ```
-Query → Browse Card Catalog → Select Cards → Pull Documents → Rerank → Return
+Query → Filter by DDC/Tags → Hybrid Search Cards → Reciprocal Rank Fusion → Pull Documents → Rerank → Return
 ```
 
-1. **Browse the catalog**: Query is matched against cards by DDC branch and tags, narrowing the search space from the full corpus to a single branch (e.g., 100K cards → ~200 in 516.x). Uses database indexes — no LLM calls.
-2. **Abstract matching**: Lightweight similarity check against card abstracts within the DDC branch (short text, fast comparison).
-3. **Vector search**: Embedding-based retrieval on card abstracts for semantic matching.
-4. **Pull documents**: Once the right cards are found, load the associated document chunks.
+1. **Filter by DDC/Tags**: Match query against card metadata (DDC branch + tags), narrowing the search space from the full corpus to a relevant branch (e.g., 100K cards → ~200 in 516.x). Uses database indexes — no LLM calls.
+2. **Hybrid search on cards**: Run **both** keyword (BM25) and vector similarity search against card abstracts in parallel. BM25 catches exact terms and technical jargon; vector search catches semantic meaning.
+3. **Reciprocal Rank Fusion (RRF)**: Fuse the BM25 and vector result lists into a single ranked list of cards. Simple, parameter-free, and works well in practice.
+4. **Pull documents**: Load the associated document chunks for the top fused cards.
 5. **Rerank**: Cross-encoder reranker on the actual text chunks for final precision.
 6. **Return**: Top K results with full text chunks.
 
-**No LLM calls at query time.** All filtering uses pre-computed card metadata and database indexes.
+**No LLM calls at query time.** All filtering and ranking uses pre-computed card metadata, keyword indexes, and vector embeddings.
 
 ### Ingest Pipeline
 
@@ -137,22 +137,24 @@ Return as JSON.
 
 ### 2. Query Router
 
-Routes incoming queries through the card catalog using only pre-computed metadata.
+Routes incoming queries through the card catalog using hybrid search — keyword and vector in parallel, fused with reciprocal rank fusion.
 
 **Flow**:
 1. **Browse catalog**: Retrieve cards matching DDC branch + tags (database index lookup)
-2. **Abstract match**: Score cards by abstract similarity (fast text comparison)
-3. **Vector search**: Embedding-based retrieval on top card abstracts
-4. **Pull documents**: Load document chunks for the top matching cards
+2. **Hybrid search**: Run **BM25 keyword search** and **vector similarity search** on card abstracts simultaneously
+3. **Reciprocal Rank Fusion**: Merge the two ranked lists using RRF: `score = sum(1 / (k + rank))` where k=60 (standard constant). No tuning needed.
+4. **Pull documents**: Load document chunks for the top fused cards
 5. **Rerank**: Cross-encoder reranker on actual text for final precision
 6. **Return**: Top K results with full text chunks
+
+**Why hybrid?**: BM25 excels at exact term matching — crucial for technical jargon, acronyms, and proper nouns that embeddings wash out. Vector search excels at semantic similarity — catching paraphrases and related concepts. Together they cover both bases. Cards are short (50-100 word abstracts), so both searches are fast.
 
 **Fallback Strategy**:
 - If catalog returns < N cards: widen to parent DDC class
 - If still < N cards: expand to sibling DDC branches
-- If still < N cards: full corpus vector search with reranking
+- If still < N cards: full corpus hybrid search with reranking
 
-**No LLM calls at query time.** All filtering uses pre-computed card metadata and database indexes.
+**No LLM calls at query time.** All filtering and ranking uses pre-computed card metadata, keyword indexes, and vector embeddings.
 
 ### 3. Embedding Service
 
@@ -235,20 +237,23 @@ def ingest_batch(documents: list[str], sources: list[str] = None) -> list[Card]:
 
 ```python
 def query(text: str, top_k: int = 10) -> list[Result]:
-    """Browse the card catalog, pull documents, return ranked chunks."""
+    """Hybrid search the card catalog, pull documents, return ranked chunks."""
     query_vec = embedder.embed(text)
     candidate_cards = storage.browse_catalog(query_vec)   # DDC + tags filter
-    matched_cards = rank_by_abstract(text, candidate_cards)
-    top_cards = rank_by_embedding(query_vec, matched_cards[:20])
-    chunks = storage.pull_chunks([c.id for c in top_cards])
+    bm25_cards = storage.bm25_search(text, candidate_cards)
+    vector_cards = storage.vector_search(query_vec, candidate_cards)
+    fused_cards = reciprocal_rank_fusion(bm25_cards, vector_cards)
+    chunks = storage.pull_chunks([c.id for c in fused_cards[:20]])
     reranked = reranker.rerank(text, chunks)
     return reranked[:top_k]
 
 def query_ddc(text: str, ddc_number: float, top_k: int = 10) -> list[Result]:
-    """Search within a specific DDC branch."""
+    """Hybrid search within a specific DDC branch."""
     cards = storage.cards_by_ddc(ddc_number)
-    top_cards = rank_by_embedding(embedder.embed(text), cards)
-    chunks = storage.pull_chunks([c.id for c in top_cards])
+    bm25_cards = storage.bm25_search(text, cards)
+    vector_cards = storage.vector_search(embedder.embed(text), cards)
+    fused_cards = reciprocal_rank_fusion(bm25_cards, vector_cards)
+    chunks = storage.pull_chunks([c.id for c in fused_cards])
     return chunks[:top_k]
 ```
 
