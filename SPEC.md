@@ -1,4 +1,16 @@
-# Dewey Decimal RAG System
+# DDS-RAG: Dewey Decimal Classification for RAG
+
+## Problem Statement
+
+Let's be honest: your organization's data is a mess. Documents are dumped into a vector store with no structure, no taxonomy, no hierarchy. When you query, the embedding model does its best, but it's searching through everything — marketing PDFs next to engineering docs next to HR policies — and semantically similar text doesn't always mean relevant text. Two documents can be "close" in embedding space but serve completely different purposes. Your RAG system retrieves what sounds right, not what belongs together.
+
+Data needs to be organized to be useful. Classification isn't optional — it's the foundation of any retrieval system that actually works. Libraries figured this out in 1876. It's time RAG did too.
+
+## Pitch
+
+Augment your RAG with Double D's — Dewey Decimal, of course.
+
+DDS-RAG adds a hierarchical classification layer to your retrieval pipeline. Documents are classified into Dewey Decimal categories at ingest time, so queries route to the right branch before they ever touch vector search. Think of it as giving your vector store a table of contents — and a card catalog. Every document gets a card: extracted metadata, an abstract, tags, classification. At query time, you browse the catalog first, then pull the actual text. Just like the good old days, except the librarians are LLMs and the shelves are vectors.
 
 ## Design Principle
 
@@ -13,49 +25,59 @@ A retrieval-augmented generation (RAG) system that uses Dewey Decimal Classifica
 ### Query Pipeline
 
 ```
-Query → Metadata Filter (DDC + tags) → Abstract Match → Vector Search → Rerank → Return
+Query → Browse Card Catalog → Select Cards → Pull Documents → Rerank → Return
 ```
 
-1. **Metadata Filter**: Query is matched against pre-classified documents by DDC number and tags, narrowing the search space from the full corpus to a single branch (e.g., 100K docs → ~200 in 516.x). Uses database indexes — no LLM calls.
-2. **Abstract Matching**: Lightweight similarity check against document summaries within the DDC branch (short text, fast comparison).
-3. **Vector Search**: Embedding-based retrieval on the filtered subset for semantic matching.
-4. **Rerank**: Cross-encoder reranker for final precision.
-5. **Return**: Top K results with full text chunks.
+1. **Browse the catalog**: Query is matched against cards by DDC branch and tags, narrowing the search space from the full corpus to a single branch (e.g., 100K cards → ~200 in 516.x). Uses database indexes — no LLM calls.
+2. **Abstract matching**: Lightweight similarity check against card abstracts within the DDC branch (short text, fast comparison).
+3. **Vector search**: Embedding-based retrieval on card abstracts for semantic matching.
+4. **Pull documents**: Once the right cards are found, load the associated document chunks.
+5. **Rerank**: Cross-encoder reranker on the actual text chunks for final precision.
+6. **Return**: Top K results with full text chunks.
 
-**No LLM calls at query time.** All filtering uses pre-computed metadata and database indexes.
+**No LLM calls at query time.** All filtering uses pre-computed card metadata and database indexes.
 
 ### Ingest Pipeline
 
 ```
-Document → Summarize → Generate Metadata (DDC + tags + topics) → Embed → Store
+Document → Card Writer (summarize + metadata) → Embed → Store Card + Chunks
 ```
 
-Each document gets:
+Each document produces a **Card** — the central catalog object:
+
 - **DDC Number**: Most specific classification (e.g., 516.37)
 - **DDC Parent**: Parent class for fallback (e.g., 510)
-- **Summary**: 50-100 word abstract
+- **Abstract**: 50-100 word summary (the card's description)
 - **Tags**: Flat list of keywords (e.g., ["differential-geometry", "finsler-spaces"])
 - **Topics**: Hierarchical subject areas (e.g., ["mathematics", "geometry"])
 - **Audience**: Target audience level (e.g., "graduate", "academic")
 - **Format**: Document type (e.g., "research-paper", "textbook")
 - **Date**: Extracted publication date
-- **Vector Embedding**: Semantic representation of the full text
-- **Full Text**: Chunked and stored for retrieval
+- **Embedding**: Vector representation of the abstract (not the full text)
+
+The Card is what you search. The document text lives behind it, chunked and stored for retrieval once the right card is found.
 
 ### Storage Schema
 
 ```yaml
+card:
+  id: string
+  ddc_classifications:        # multi-classification supported
+    - number: float           # e.g. 516.37
+      confidence: float       # e.g. 0.9
+  ddc_parent: float           # parent class for fallback (e.g. 510)
+  abstract: string            # 50-100 word summary
+  tags: list[string]          # flat keywords
+  topics: list[string]        # hierarchical subjects
+  audience: string            # e.g. "graduate"
+  format: string              # e.g. "research-paper"
+  date: datetime              # extracted publication date
+  embedding: vector           # embedding of the abstract
+
 document:
   id: string
-  ddc_number: float          # e.g. 516.37
-  ddc_parent: float          # e.g. 510 (for fallback)
-  summary: string            # 50-100 word abstract
-  tags: list[string]         # flat keywords
-  topics: list[string]       # hierarchical subjects
-  audience: string           # e.g. "graduate"
-  format: string             # e.g. "research-paper"
-  date: datetime             # extracted publication date
-  embedding: vector          # document-level embedding
+  card_id: string             # back-reference to the card
+  source: string              # original filename/URL
   chunks:
     - id: string
       text: string
@@ -63,40 +85,38 @@ document:
       offset: int
 ```
 
+The card is the first-class citizen. Documents reference their card, not the other way around. A single card could eventually point to multiple documents (translations, revisions, related sources) — but for now it's one-to-one.
+
 ### Index Strategy
 
-Database indexes on: `ddc_number`, `tags`, `topics`, `audience`, `format`, `date`. All metadata filters use B-tree or inverted indexes for O(log n) lookups.
+All indexes live on the **card** table: `ddc_classifications.number`, `tags`, `topics`, `audience`, `format`, `date`. Queries hit the card catalog first — document text is never scanned until a card is selected. All metadata filters use B-tree or inverted indexes for O(log n) lookups.
 
 ## Components
 
-### 1. Document Summarizer
+### 1. Card Writer
 
-Generates abstracts for ingested documents.
+Creates catalog cards from raw documents. Combines summarization and metadata generation into a single pipeline.
+
+**Pipeline**:
+1. **Summarize**: Generate a 50-100 word abstract from the full document text.
+2. **Generate metadata**: Extract DDC classifications, tags, topics, audience, format, and date from the abstract.
 
 **Input**: Full document text
-**Output**: 50-100 word summary capturing core subject and key points
+**Output**: A complete Card (abstract + all metadata fields)
 
-**Purpose**: Provides a compressed, noise-free representation for fast abstract matching at query time. Also used as input to the metadata generator (summarize first, then generate metadata from the summary to save tokens).
-
-### 2. Metadata Generator
-
-Generates all document metadata in a single LLM call at ingest time: DDC number, tags, topics, audience, format, and date extraction.
-
-**Input**: Document summary (100 words)
-**Output**: Structured metadata dict
-
-**Rationale**: Amortizes LLM cost by generating all metadata in one call rather than separate calls for classification, tagging, etc.
+**Rationale**: Amortizes LLM cost by generating the abstract and all metadata in a single call. The abstract is the card's description — short enough to embed cheaply, rich enough to distinguish this document from others on the same shelf.
 
 **Prompt Template**:
 ```
-Analyze this document summary and return structured metadata:
+Analyze this document and create a catalog card. Return structured metadata:
 
-1. DDC Number: The most specific Dewey Decimal Classification number
-2. Tags: 3-5 flat keywords (hyphenated, lowercase)
-3. Topics: 2-3 hierarchical subject areas (broad to specific)
-4. Audience: Target audience level (elementary, high-school, undergraduate, graduate, academic, general)
-5. Format: Document type (research-paper, textbook, article, blog, report, etc.)
-6. Date: Extracted publication date (or null if not present)
+1. Abstract: A 50-100 word summary capturing core subject and key points
+2. DDC Classifications: List of (number, confidence) pairs — include all relevant categories
+3. Tags: 3-5 flat keywords (hyphenated, lowercase)
+4. Topics: 2-3 hierarchical subject areas (broad to specific)
+5. Audience: Target audience level (elementary, high-school, undergraduate, graduate, academic, general)
+6. Format: Document type (research-paper, textbook, article, blog, report, etc.)
+7. Date: Extracted publication date (or null if not present)
 
 Main DDC classes:
 000 - Computer science, information & general works
@@ -110,39 +130,41 @@ Main DDC classes:
 800 - Literature
 900 - History and geography
 
-Summary: {summary}
+Document: {document_text}
 
 Return as JSON.
 ```
 
-### 3. Query Router
+### 2. Query Router
 
-Routes incoming queries through the retrieval funnel using only pre-computed metadata.
+Routes incoming queries through the card catalog using only pre-computed metadata.
 
 **Flow**:
-1. **Metadata filter**: Retrieve documents matching DDC branch + tags (database index lookup)
-2. **Abstract match**: Score candidates by summary similarity (fast text comparison)
-3. **Vector search**: Embedding-based retrieval on top abstract matches
-4. **Rerank**: Cross-encoder reranker for final precision
-5. **Return**: Top K results with full text chunks
+1. **Browse catalog**: Retrieve cards matching DDC branch + tags (database index lookup)
+2. **Abstract match**: Score cards by abstract similarity (fast text comparison)
+3. **Vector search**: Embedding-based retrieval on top card abstracts
+4. **Pull documents**: Load document chunks for the top matching cards
+5. **Rerank**: Cross-encoder reranker on actual text for final precision
+6. **Return**: Top K results with full text chunks
 
 **Fallback Strategy**:
-- If metadata filter returns < N results: widen to parent DDC class
-- If still < N results: expand to sibling DDC branches
-- If still < N results: full corpus vector search with reranking
+- If catalog returns < N cards: widen to parent DDC class
+- If still < N cards: expand to sibling DDC branches
+- If still < N cards: full corpus vector search with reranking
 
-**No LLM calls at query time.** All filtering uses pre-computed metadata and database indexes.
+**No LLM calls at query time.** All filtering uses pre-computed card metadata and database indexes.
 
-### 4. Embedding Service
+### 3. Embedding Service
 
-Generates vector embeddings for documents and queries.
+Generates vector embeddings for card abstracts and text chunks.
 
 **Requirements**:
-- Supports both document-level and chunk-level embeddings
+- Embeds card abstracts at ingest time (short text, cheap)
+- Embeds document chunks at ingest time (for retrieval after card selection)
+- Embeds queries at query time
 - Configurable embedding model (e.g., text-embedding-3-small, BGE, etc.)
-- Runs at ingest time for documents, query time for queries
 
-### 5. Reranker
+### 4. Reranker
 
 Cross-encoder reranker for final precision after vector search.
 
@@ -192,46 +214,62 @@ storage:
 ### Ingest
 
 ```python
-def ingest_document(text: str) -> Document:
-    """Ingest a document: summarize, generate metadata, embed, and store."""
-    summary = summarizer.summarize(text)
-    metadata = metadata_generator.generate(summary)  # DDC, tags, topics, etc.
-    embedding = embedder.embed(text)
+def ingest(text: str, source: str = "") -> Card:
+    """Create a catalog card from raw document text."""
+    card = card_writer.write(text)           # abstract + metadata
+    card.embedding = embedder.embed(card.abstract)
     chunks = chunker.chunk(text)
-    return storage.save(Document(text, summary, metadata, embedding, chunks))
+    for chunk in chunks:
+        chunk.embedding = embedder.embed(chunk.text)
+    document = Document(card_id=card.id, source=source, chunks=chunks)
+    storage.save_card(card)
+    storage.save_document(document)
+    return card
 
-def ingest_batch(documents: list[str]) -> list[Document]:
+def ingest_batch(documents: list[str], sources: list[str] = None) -> list[Card]:
     """Ingest multiple documents in parallel."""
-    return [ingest_document(doc) for doc in documents]
+    return [ingest(doc, src) for doc, src in zip(documents, sources or [""]*len(documents))]
 ```
 
 ### Query
 
 ```python
 def query(text: str, top_k: int = 10) -> list[Result]:
-    """Search using metadata filters + vector search. No LLM calls."""
-    candidates = storage.filter_by_metadata(text)  # DDC branch + tags
-    abstract_matches = rank_by_abstract(text, candidates)
-    vector_matches = rank_by_embedding(text, abstract_matches[:20])
-    reranked = reranker.rerank(text, vector_matches)
+    """Browse the card catalog, pull documents, return ranked chunks."""
+    query_vec = embedder.embed(text)
+    candidate_cards = storage.browse_catalog(query_vec)   # DDC + tags filter
+    matched_cards = rank_by_abstract(text, candidate_cards)
+    top_cards = rank_by_embedding(query_vec, matched_cards[:20])
+    chunks = storage.pull_chunks([c.id for c in top_cards])
+    reranked = reranker.rerank(text, chunks)
     return reranked[:top_k]
 
 def query_ddc(text: str, ddc_number: float, top_k: int = 10) -> list[Result]:
     """Search within a specific DDC branch."""
-    candidates = storage.filter_by_ddc(ddc_number)
-    return rank_by_embedding(text, candidates)[:top_k]
+    cards = storage.cards_by_ddc(ddc_number)
+    top_cards = rank_by_embedding(embedder.embed(text), cards)
+    chunks = storage.pull_chunks([c.id for c in top_cards])
+    return chunks[:top_k]
 ```
 
 ### Admin
 
 ```python
-def get_ddc_distribution() -> dict[float, int]:
-    """Return document count per DDC number."""
+def catalog_stats() -> dict[float, int]:
+    """Return card count per DDC number."""
     return storage.ddc_distribution()
 
-def reclassify(document_id: str, new_ddc: float) -> Document:
-    """Manually override DDC classification."""
-    return storage.update_ddc(document_id, new_ddc)
+def reclassify(card_id: str, new_ddc: float) -> Card:
+    """Manually override card classification."""
+    return storage.update_ddc(card_id, new_ddc)
+
+def get_card(card_id: str) -> Card:
+    """Look up a card by ID."""
+    return storage.get_card(card_id)
+
+def get_document(card_id: str) -> Document:
+    """Pull the full document behind a card."""
+    return storage.get_document_by_card(card_id)
 ```
 
 ## DDC Main Classes Reference
@@ -251,11 +289,11 @@ def reclassify(document_id: str, new_ddc: float) -> Document:
 
 ## Multi-Classification Handling
 
-Documents that span multiple DDC categories are tagged with all relevant numbers. The metadata generator returns a list of (ddc_number, confidence) pairs. All are stored and indexed — a document classified as both 170 and 006.7 will be found by queries matching either branch.
+Cards that span multiple DDC categories carry all relevant numbers. The Card Writer returns a list of (ddc_number, confidence) pairs. All are stored and indexed — a card classified as both 170 and 006.7 will be found by queries matching either branch.
 
 Example:
 ```yaml
-document_id: doc_123
+card_id: card_456
 ddc_classifications:
   - number: 170    # moral philosophy
     confidence: 0.9
@@ -267,15 +305,15 @@ ddc_classifications:
 
 ## Consistency & Maintenance
 
-- **Cluster analysis**: Periodically analyze documents in the same DDC branch for classification consistency
-- **Normalization**: If >70% of documents in a cluster share a more specific number, standardize to that number
-- **Gap detection**: Identify DDC branches with no documents to spot coverage gaps
+- **Cluster analysis**: Periodically analyze cards in the same DDC branch for classification consistency
+- **Normalization**: If >70% of cards in a cluster share a more specific number, standardize to that number
+- **Gap detection**: Identify DDC branches with no cards to spot coverage gaps
 - **Human review**: Flag low-confidence classifications (<0.5) for manual review
-- **Batch re-ingest**: When taxonomy changes or quality degrades, re-run the ingest pipeline on affected documents
+- **Batch re-ingest**: When taxonomy changes or quality degrades, re-run the Card Writer on affected documents
 
 ## Future Considerations
 
 - **Custom DDC extensions**: Support for domain-specific subcategories beyond standard DDC
 - **Cross-lingual**: DDC numbers are language-agnostic, enabling multilingual RAG
 - **Batch re-ingest automation**: Detect classification drift and trigger re-ingest of affected documents
-- **Trained classifier**: After 1,000+ LLM-labeled documents, train a lightweight classifier to replace the LLM for ingest
+- **Trained classifier**: After 1,000+ LLM-labeled cards, train a lightweight classifier to replace the LLM for card creation
