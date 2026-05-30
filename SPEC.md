@@ -8,7 +8,7 @@ Data needs to be organized to be useful. Classification isn't optional — it's 
 
 ## Pitch
 
-Augment your RAG with Double D's — Dewey Decimal System, not what you're thinking.
+Augment your RAG with Double D's — Dewey Decimal.
 
 DDS-RAG adds a hierarchical classification layer to your retrieval pipeline. Documents are classified into Dewey Decimal categories at ingest time, so queries route to the right branch before they ever touch vector search. Think of it as giving your vector store a table of contents — and a card catalog. Every document gets a card: extracted metadata, an abstract, tags, classification. At query time, you browse the catalog first, then pull the actual text. Just like the good old days, except the librarians are LLMs and the shelves are vectors.
 
