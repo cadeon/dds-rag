@@ -113,21 +113,64 @@ Analyze this document and create a catalog card. Return structured metadata:
 6. Format: Document type (research-paper, textbook, article, blog, report, etc.)
 7. Date: Extracted publication date (or null if not present)
 
-Main DDC classes:
+Main DDC classes (include subcategories down to the 100-level):
 000 - Computer science, information & general works
+  001 - Philosophy of computer science
+  003 - Systems
+  005 - Programming, programs, data
+  006 - Special computer applications
+    006.7 - Artificial intelligence
+  010 - Bibliography
+  020 - Library and information sciences
+  050 - Museums. Materials handling and supply
+  060 - Management & auxiliary services
+  070 - News media, news publishing
+  080 - Journals, academic worlds
+  090 - Book knowledge
 100 - Philosophy & psychology
+  110 - Metaphysics
+  120 - Epistemology, causation, humankind
+  130 - Parapsychology & occultism
+  140 - Philosophical schools
+  150 - Psychology
+  160 - Philosophy of other branches
+  170 - Moral philosophy
 200 - Religion
+  ...
 300 - Social sciences
+  ...
 400 - Language
+  ...
 500 - Pure science
+  510 - Mathematics
+    512 - Algebra
+    513 - Arithmetic
+    514 - Geometry
+    515 - Mathematical analysis
+    516 - Geometry
+      516.3 - Analytic geometry
+        516.36 - Differential geometry
+    519 - Other branches of mathematics
+  520 - Astronomy & allied sciences
+  530 - Physics
+  540 - Chemistry
+  550 - Natural history
+  560 - Invertebrate animals
+  570 - Plants, bacteria, fungi, viruses
+  580 - Botany
+  590 - Zoology
 600 - Technology
+  ...
 700 - Arts & recreation
+  ...
 800 - Literature
+  ...
 900 - History and geography
+  ...
 
 Document: {document_text}
 
-Return as JSON.
+Prefer specific DDC numbers over broad ones. Return as JSON.
 ```
 
 ### 2. Query Router
@@ -282,6 +325,32 @@ def get_document(card_id: str) -> Document:
 | 700 | Arts & recreation |
 | 800 | Literature |
 | 900 | History and geography |
+
+## DDC Classification
+
+DDC numbers are the backbone of this system. Getting them right at ingest determines whether queries find what they're looking for.
+
+### Classification Strategy
+
+The Card Writer assigns DDC numbers from the full DDC table (not just the 10 main classes). The prompt includes the complete DDC hierarchy down to the 100-level (e.g., 510 Mathematics, 516 Geometry, 516.3 Analytic geometry) so the LLM can pick specific numbers, not just broad categories.
+
+**Preference for specificity**: The LLM is instructed to return the most specific DDC number it's confident about. A document about differential geometry should be 516.36, not 516, not 510. High confidence at a specific level beats low confidence at a broader one.
+
+### Matching to Existing Classifications
+
+When the catalog already has cards, the Card Writer should prefer reusing DDC numbers that already exist in the collection over inventing new ones. This prevents fragmentation — if 200 cards are already classified as 516.36, a new differential geometry paper should also be 516.36, not 516.37 because the LLM picked a slightly different subcategory.
+
+**Implementation**: At ingest, query the catalog for the most common DDC numbers in the relevant branch (e.g., all 516.x numbers). Pass the top N existing numbers to the Card Writer prompt as "preferred classifications" — the LLM can still override them but is biased toward reusing what's already there.
+
+### New Classifications
+
+DDC is a living system with over 40,000 numbers. The LLM may encounter documents that don't fit existing categories, or it may legitimately assign a number that no other card in the collection uses. Both are fine — a new DDC number in the catalog just means a new shelf. The system doesn't need to create new numbers; it just needs to accept them when the LLM assigns one.
+
+If the LLM consistently assigns the same "new" number across multiple documents, that's a signal the taxonomy is working. If it scatters similar documents across different numbers, that's a consistency problem caught by the maintenance cluster analysis.
+
+### Keyword Normalization
+
+Tags and topics use standard text normalization: lowercase, hyphenated, stemmed (Snowball algorithm). No custom synonym resolution needed — BM25 keyword search handles token matching natively. The Card Writer prompt enforces the format (hyphenated, lowercase) at the source.
 
 ## Multi-Classification Handling
 
