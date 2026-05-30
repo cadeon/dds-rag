@@ -101,116 +101,32 @@ Creates catalog cards from raw documents. Combines summarization and metadata ge
 
 **Rationale**: Amortizes LLM cost by generating the abstract and all metadata in a single call. The abstract is the card's description — short enough to embed cheaply, rich enough to distinguish this document from others on the same shelf.
 
-**Prompt Template**:
-```
-Analyze this document and create a catalog card. Return structured metadata:
-
-1. Abstract: A 50-100 word summary capturing core subject and key points
-2. DDC Classifications: List of (number, confidence) pairs — include all relevant categories
-3. Tags: 3-5 flat keywords (hyphenated, lowercase)
-4. Topics: 2-3 hierarchical subject areas (broad to specific)
-5. Audience: Target audience level (elementary, high-school, undergraduate, graduate, academic, general)
-6. Format: Document type (research-paper, textbook, article, blog, report, etc.)
-7. Date: Extracted publication date (or null if not present)
-
-Main DDC classes (include subcategories down to the 100-level):
-000 - Computer science, information & general works
-  001 - Philosophy of computer science
-  003 - Systems
-  005 - Programming, programs, data
-  006 - Special computer applications
-    006.7 - Artificial intelligence
-  010 - Bibliography
-  020 - Library and information sciences
-  050 - Museums. Materials handling and supply
-  060 - Management & auxiliary services
-  070 - News media, news publishing
-  080 - Journals, academic worlds
-  090 - Book knowledge
-100 - Philosophy & psychology
-  110 - Metaphysics
-  120 - Epistemology, causation, humankind
-  130 - Parapsychology & occultism
-  140 - Philosophical schools
-  150 - Psychology
-  160 - Philosophy of other branches
-  170 - Moral philosophy
-200 - Religion
-  ...
-300 - Social sciences
-  ...
-400 - Language
-  ...
-500 - Pure science
-  510 - Mathematics
-    512 - Algebra
-    513 - Arithmetic
-    514 - Geometry
-    515 - Mathematical analysis
-    516 - Geometry
-      516.3 - Analytic geometry
-        516.36 - Differential geometry
-    519 - Other branches of mathematics
-  520 - Astronomy & allied sciences
-  530 - Physics
-  540 - Chemistry
-  550 - Natural history
-  560 - Invertebrate animals
-  570 - Plants, bacteria, fungi, viruses
-  580 - Botany
-  590 - Zoology
-600 - Technology
-  ...
-700 - Arts & recreation
-  ...
-800 - Literature
-  ...
-900 - History and geography
-  ...
-
-Document: {document_text}
-
-Prefer specific DDC numbers over broad ones. Return as JSON.
-```
+**Prompt Template**: See [templates/card_writer.md](templates/card_writer.md) for the full prompt. Key points:
+- Asks for abstract, DDC classifications, tags, topics, audience, format, date
+- Includes full DDC hierarchy down to 100-level (see DDC Reference below)
+- Enforces hyphenated lowercase tags
+- Returns JSON
 
 ### 2. Query Router
 
 Routes incoming queries through the card catalog using hybrid search — keyword and vector in parallel, fused with reciprocal rank fusion.
 
-**Flow**:
-1. **Browse catalog**: Match query terms against indexed card topics/tags to find the most relevant DDC branch (no LLM — lightweight keyword matching)
-2. **Hybrid search**: Run **BM25 keyword search** and **vector similarity search** on card abstracts simultaneously
-3. **Reciprocal Rank Fusion**: Merge the two ranked lists using RRF: `score = sum(1 / (k + rank))` where k=60 (standard constant). No tuning needed.
-4. **Pull documents**: Load document chunks for the top fused cards
-5. **Rerank**: Cross-encoder reranker on actual text for final precision
-6. **Return**: Top K results with full text chunks
-
-**Why hybrid?**: BM25 excels at exact term matching — crucial for technical jargon, acronyms, and proper nouns that embeddings wash out. Vector search excels at semantic similarity — catching paraphrases and related concepts. Together they cover both bases. Cards are short (50-100 word abstracts), so both searches are fast.
+**Why hybrid?**: BM25 catches exact terms and technical jargon; vector search catches semantic meaning. Cards are short (50-100 word abstracts), so both searches are fast. RRF merges results: `score = sum(1 / (k + rank))` where k=60.
 
 **Fallback Strategy**:
 - If catalog returns < N cards: widen to parent DDC class
-- If still < N cards: expand to sibling DDC branches
-- If still < N cards: full corpus hybrid search with reranking
+- If still < N: expand to sibling DDC branches
+- If still < N: full corpus hybrid search with reranking
 
-**No LLM calls at query time.** All filtering and ranking uses pre-computed card metadata, keyword indexes, and vector embeddings.
+**No LLM calls at query time.**
 
 ### 3. Embedding Service
 
-Generates vector embeddings for card abstracts and text chunks.
-
-**Requirements**:
-- Embeds card abstracts at ingest time (short text, cheap)
-- Embeds document chunks at ingest time (for retrieval after card selection)
-- Embeds queries at query time
-- Configurable embedding model (e.g., text-embedding-3-small, BGE, etc.)
+Embeds card abstracts, document chunks, and queries. Configurable model (e.g., text-embedding-3-small, BGE). All embeddings computed at ingest except query embeddings.
 
 ### 4. Reranker
 
-Cross-encoder reranker for final precision after hybrid card search has selected the relevant documents.
-
-**Requirements**:
-- Configurable reranker model (e.g., BGE Reranker, Cohere Rerank)
-- Takes query + candidate text chunks, returns ranked list
+Cross-encoder reranker on final text chunks. Configurable model (e.g., BGE Reranker, Cohere Rerank).
 
 ## Configuration
 
@@ -311,7 +227,11 @@ def get_document(card_id: str) -> Document:
     return storage.get_document_by_card(card_id)
 ```
 
-## DDC Main Classes Reference
+## DDC Classification
+
+DDC numbers are the backbone. Getting them right at ingest determines whether queries find what they're looking for.
+
+### Main Classes
 
 | Number | Class |
 |--------|-------|
@@ -326,59 +246,39 @@ def get_document(card_id: str) -> Document:
 | 800 | Literature |
 | 900 | History and geography |
 
-## DDC Classification
-
-DDC numbers are the backbone of this system. Getting them right at ingest determines whether queries find what they're looking for.
-
 ### Classification Strategy
 
-The Card Writer assigns DDC numbers from the full DDC table (not just the 10 main classes). The prompt includes the complete DDC hierarchy down to the 100-level (e.g., 510 Mathematics, 516 Geometry, 516.3 Analytic geometry) so the LLM can pick specific numbers, not just broad categories.
-
-**Preference for specificity**: The LLM is instructed to return the most specific DDC number it's confident about. A document about differential geometry should be 516.36, not 516, not 510. High confidence at a specific level beats low confidence at a broader one.
+The Card Writer assigns DDC numbers from the full DDC table (not just the 10 main classes). The prompt includes the complete hierarchy down to the 100-level (e.g., 510 → 516 → 516.3 → 516.36) so the LLM picks specific numbers, not broad categories. A document about differential geometry should be 516.36, not 516, not 510.
 
 ### Matching to Existing Classifications
 
-When the catalog already has cards, the Card Writer should prefer reusing DDC numbers that already exist in the collection over inventing new ones. This prevents fragmentation — if 200 cards are already classified as 516.36, a new differential geometry paper should also be 516.36, not 516.37 because the LLM picked a slightly different subcategory.
+When the catalog already has cards, prefer reusing existing DDC numbers over inventing new ones. If 200 cards are already 516.36, a new differential geometry paper should also be 516.36.
 
-**Implementation**: At ingest, query the catalog for the most common DDC numbers in the relevant branch (e.g., all 516.x numbers). Pass the top N existing numbers to the Card Writer prompt as "preferred classifications" — the LLM can still override them but is biased toward reusing what's already there.
+**Implementation**: At ingest, query the catalog for the most common DDC numbers in the relevant branch. Pass the top N to the Card Writer prompt as "preferred classifications" — the LLM can override but is biased toward reuse.
 
 ### New Classifications
 
-DDC is a living system with over 40,000 numbers. The LLM may encounter documents that don't fit existing categories, or it may legitimately assign a number that no other card in the collection uses. Both are fine — a new DDC number in the catalog just means a new shelf. The system doesn't need to create new numbers; it just needs to accept them when the LLM assigns one.
-
-If the LLM consistently assigns the same "new" number across multiple documents, that's a signal the taxonomy is working. If it scatters similar documents across different numbers, that's a consistency problem caught by the maintenance cluster analysis.
+DDC has over 40,000 numbers. The LLM may assign numbers no other card uses — that's fine. A new number just means a new shelf. Consistent reuse of a "new" number means the taxonomy is working; scattering across numbers means a consistency problem caught by maintenance.
 
 ### Keyword Normalization
 
-Tags and topics use standard text normalization: lowercase, hyphenated, stemmed (Snowball algorithm). No custom synonym resolution needed — BM25 keyword search handles token matching natively. The Card Writer prompt enforces the format (hyphenated, lowercase) at the source.
+Tags and topics: lowercase, hyphenated, stemmed (Snowball). No custom synonym resolution — BM25 handles token matching. Prompt enforces format at source.
 
-## Multi-Classification Handling
+### Multi-Classification
 
-Cards that span multiple DDC categories carry all relevant numbers. The Card Writer returns a list of (ddc_number, confidence) pairs. All are stored and indexed — a card classified as both 170 and 006.7 will be found by queries matching either branch.
+Cards spanning multiple DDC categories carry all relevant numbers as (number, confidence) pairs. All are indexed — a card classified as both 170 and 006.7 is found by queries matching either branch.
 
-Example:
-```yaml
-card_id: card_456
-ddc_classifications:
-  - number: 170    # moral philosophy
-    confidence: 0.9
-  - number: 006.7  # AI
-    confidence: 0.85
-  - number: 324.8  # civil liberties
-    confidence: 0.7
-```
+### Consistency & Maintenance
 
-## Consistency & Maintenance
-
-- **Cluster analysis**: Periodically analyze cards in the same DDC branch for classification consistency
-- **Normalization**: If >70% of cards in a cluster share a more specific number, standardize to that number
-- **Gap detection**: Identify DDC branches with no cards to spot coverage gaps
-- **Human review**: Flag low-confidence classifications (<0.5) for manual review
-- **Batch re-ingest**: When taxonomy changes or quality degrades, re-run the Card Writer on affected documents
+- **Cluster analysis**: Periodically check cards in the same DDC branch for consistency
+- **Normalization**: If >70% of a cluster shares a more specific number, standardize
+- **Gap detection**: Identify empty DDC branches
+- **Human review**: Flag low-confidence classifications (<0.5)
+- **Batch re-ingest**: Re-run Card Writer when taxonomy changes or quality degrades
 
 ## Future Considerations
 
-- **Custom DDC extensions**: Support for domain-specific subcategories beyond standard DDC
-- **Cross-lingual**: DDC numbers are language-agnostic, enabling multilingual RAG
-- **Batch re-ingest automation**: Detect classification drift and trigger re-ingest of affected documents
-- **Trained classifier**: After 1,000+ LLM-labeled cards, train a lightweight classifier to replace the LLM for card creation
+- Custom DDC extensions for domain-specific subcategories
+- Cross-lingual RAG (DDC numbers are language-agnostic)
+- Automated classification drift detection
+- Trained classifier to replace LLM after 1,000+ labeled cards
