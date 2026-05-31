@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import sys
@@ -15,12 +16,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from UniversalDecimalInator.reference import ClassificationReference
 from UniversalDecimalInator.fs import (
-    list_cards, search_cards, catalog_stats, read_card, write_card,
+    list_cards, search_cards, catalog_stats, read_card, write_card, card_to_markdown,
     cards_by_classification,
 )
 from UniversalDecimalInator.ingest import ingest, ingest_url
 from UniversalDecimalInator.admin import delete_card, reclassify
-from UniversalDecimalInator.models import Card, UDCClassification
+from UniversalDecimalInator.models import Card, UDCClassification, Source
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.yaml")
 with open(CONFIG_PATH) as f:
@@ -34,6 +35,12 @@ ref = ClassificationReference(REF_PATH)
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+
+
+@app.context_processor
+def utility_processor():
+    """Make utility functions available in all templates."""
+    return dict(card_to_markdown=card_to_markdown)
 
 # Cache for catalog stats - invalidated on write operations
 _stats_cache: dict | None = None
@@ -99,7 +106,7 @@ def card_detail(card_id):
     card = read_card(KB_PATH, card_id)
     if not card:
         return "Card not found", 404
-    return render_template("card.html", card=card)
+    return render_template("card.html", card=card, ref=ref)
 
 
 @app.route("/card/<card_id>/edit", methods=["GET", "POST"])
@@ -115,6 +122,15 @@ def card_edit(card_id):
         card.source_url = request.form.get("source_url", card.source_url or "")
         card.tags = [t.strip() for t in request.form.get("tags", "").split(",") if t.strip()]
         card.topics = [t.strip() for t in request.form.get("topics", "").split(",") if t.strip()]
+        card.format = request.form.get("format", card.format or "")
+        card.udc_label = request.form.get("udc_label", card.udc_label or "")
+        # Parse sources from JSON textarea
+        sources_json = request.form.get("sources_json", "").strip()
+        if sources_json:
+            try:
+                card.sources = [Source.from_dict(json.loads(line)) for line in sources_json.split("\n") if line.strip()]
+            except (json.JSONDecodeError, ValueError):
+                pass  # Keep existing sources on parse error
         udc_number = request.form.get("udc_number", "").strip()
         if udc_number and udc_number != card.classification.primary:
             reclassify(KB_PATH, card_id, udc_number, ref)

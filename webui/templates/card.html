@@ -9,7 +9,6 @@
 <body>
     <header class="catalog-header">
         <h1 class="catalog-title">UniversalDecimalInator Card Catalog</h1>
-        <p class="catalog-subtitle">Card Detail</p>
     </header>
 
     <nav class="nav-bar">
@@ -26,15 +25,37 @@
         <div class="breadcrumb">
             <a href="{{ url_for('index') }}">Catalog</a>
             <span class="breadcrumb-sep">&rsaquo;</span>
+            {% if card.classification.primary and ref %}
+            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">
+                {{ card.classification.primary }} — {{ ref.get_label(card.classification.primary) }}
+            </a>
+            {% else %}
             <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+            {% endif %}
             <span class="breadcrumb-sep">&rsaquo;</span>
-            <span>{{ card.id[:8] }}</span>
+            <span>{{ card.id }}</span>
         </div>
 
         <div class="card-detail">
             <div class="card-detail-header">
-                <div>
-                    <span class="card-detail-udc">{{ card.classification.primary }}</span>
+                <div class="card-header-left">
+                    <h2 class="card-title">{{ card.title or card.id }}</h2>
+                    <div class="card-meta">
+                        {% if card.classification.primary and ref %}
+                        <span class="card-udc">
+                            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+                            <span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>
+                        </span>
+                        {% else %}
+                        <span class="card-udc">{{ card.classification.primary }}</span>
+                        {% endif %}
+                        {% if card.author %}
+                        <span class="card-author">{{ card.author }}</span>
+                        {% endif %}
+                        {% if card.updated_at %}
+                        <span class="card-updated">Updated {{ card.updated_at[:10] }}</span>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-detail-actions">
                     <a href="{{ url_for('card_edit', card_id=card.id) }}" class="btn btn-primary">Edit Card</a>
@@ -44,48 +65,80 @@
                 </div>
             </div>
 
-            {% if card.title %}
-            <div class="card-field">
-                <div class="card-field-label">Title</div>
-                <div class="card-field-value"><strong>{{ card.title }}</strong></div>
-            </div>
-            {% endif %}
-
-            {% if card.author %}
-            <div class="card-field">
-                <div class="card-field-label">Author</div>
-                <div class="card-field-value">{{ card.author }}</div>
-            </div>
-            {% endif %}
-
-            {% if card.source_url %}
-            <div class="card-field">
-                <div class="card-field-label">Source</div>
-                <div class="card-field-value"><a href="{{ card.source_url }}" target="_blank" rel="noopener">{{ card.source_url }}</a></div>
-            </div>
-            {% endif %}
-
+            {% if card.abstract %}
             <div class="card-field">
                 <div class="card-field-label">Abstract</div>
                 <div class="card-field-value">{{ card.abstract }}</div>
             </div>
+            {% endif %}
 
+            {% if card.sources or card.source_url %}
+            <div class="card-field">
+                <div class="card-field-label">Artifacts</div>
+                <div class="card-field-value">
+                    {% for src in card.sources %}
+                    <div class="artifact-item">
+                        <span class="artifact-type">{{ src.type }}</span>
+                        {% if src.uri %}
+                            {% if src.type == 'url' %}
+                            <a href="{{ src.uri }}" target="_blank" rel="noopener">{{ src.uri }}</a>
+                            {% else %}
+                            {{ src.uri }}
+                            {% endif %}
+                        {% endif %}
+                        {% if src.content_type %}
+                        <span class="artifact-meta">{{ src.content_type }}</span>
+                        {% endif %}
+                    </div>
+                    {% if src.artifacts %}
+                    <div class="artifact-files">
+                        {{ src.artifacts | join(', ') }}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% if card.source_url and not card.sources %}
+                    <div class="artifact-item">
+                        <a href="{{ card.source_url }}" target="_blank" rel="noopener">{{ card.source_url }}</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if card.classification.primary or card.classification.secondary %}
             <div class="card-field">
                 <div class="card-field-label">UDC Classification</div>
-                <div class="card-field-value">
-                    <span class="card-udc">{{ card.classification.primary }}</span>
+                <div class="card-field-value classification-list">
+                    {% if card.classification.primary %}
+                    <div class="class-item">
+                        <span class="class-number">
+                            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+                        </span>
+                        {% if ref %}
+                        <span class="class-label">{{ ref.get_label(card.classification.primary) }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                     {% for sec in card.classification.secondary %}
-                    <span class="card-udc" style="margin-left: 0.5rem;">{{ sec }}</span>
+                    <div class="class-item">
+                        <span class="class-number">
+                            <a href="{{ url_for('browse', udc_number=sec) }}">{{ sec }}</a>
+                        </span>
+                        {% if ref %}
+                        <span class="class-label">{{ ref.get_label(sec) }}</span>
+                        {% endif %}
+                    </div>
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
             {% if card.tags %}
             <div class="card-field">
                 <div class="card-field-label">Tags</div>
-                <div class="card-field-value">
+                <div class="card-field-value tag-list">
                     {% for tag in card.tags %}
-                    <span class="card-tag" style="margin: 0.15rem;">{{ tag }}</span>
+                    <a href="{{ url_for('search', q=tag) }}" class="card-tag" title="Search for '{{ tag }}'">{{ tag }}</a>
                     {% endfor %}
                 </div>
             </div>
@@ -94,20 +147,18 @@
             {% if card.topics %}
             <div class="card-field">
                 <div class="card-field-label">Topics</div>
-                <div class="card-field-value">
+                <div class="card-field-value topic-list">
                     {% for topic in card.topics %}
-                    <span class="card-topic" style="margin: 0.15rem;">{{ topic }}</span>
+                    <a href="{{ url_for('search', q=topic) }}" class="card-topic" title="Search for '{{ topic }}'">{{ topic }}</a>
                     {% endfor %}
                 </div>
             </div>
             {% endif %}
 
-            {% if card.content %}
             <div class="card-field">
-                <div class="card-field-label">Content</div>
-                <div class="document-text">{{ card.content }}</div>
+                <div class="card-field-label">Raw Card</div>
+                <div class="rag-view">{{ card_to_markdown(card) }}</div>
             </div>
-            {% endif %}
         </div>
     </main>
 

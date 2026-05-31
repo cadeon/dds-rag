@@ -53,7 +53,7 @@ body {
 .catalog-header {
     background: linear-gradient(180deg, var(--wood-medium) 0%, var(--wood-dark) 100%);
     border-bottom: 4px solid var(--wood-light);
-    padding: 1.5rem 2rem;
+    padding: 1rem 2rem;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     position: relative;
@@ -406,12 +406,66 @@ body {
     border-bottom: 2px solid var(--wood-pale);
 }
 
-.card-detail-udc {
+.card-header-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-title {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    color: var(--ink-black);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+}
+
+.card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.card-udc {
     font-family: var(--font-mono);
-    font-size: 1.2rem;
+    font-size: 0.9rem;
+    font-weight: bold;
     background: var(--wood-pale);
-    padding: 0.3rem 0.8rem;
+    padding: 0.25rem 0.6rem;
     border-radius: 3px;
+    border: 1px solid var(--wood-light);
+    color: var(--ink-black);
+}
+
+.card-udc a {
+    color: var(--ink-black);
+    text-decoration: none;
+}
+
+.card-udc a:hover {
+    color: var(--accent-gold);
+}
+
+.card-udc-label {
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
+    color: var(--ink-gray);
+    margin-left: 0.4rem;
+    font-weight: normal;
+}
+
+.card-author {
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
+    color: var(--ink-gray);
+    font-style: italic;
+}
+
+.card-updated {
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    color: var(--ink-gray);
+    opacity: 0.7;
 }
 
 .card-detail-actions {
@@ -491,6 +545,141 @@ body {
     white-space: pre-wrap;
     max-height: 600px;
     overflow-y: auto;
+}
+
+/* RAG view - raw card markdown */
+.rag-view {
+    background: var(--card-cream);
+    border: 1px solid var(--wood-light);
+    border-radius: 3px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--ink-black);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Artifact items */
+.artifact-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.artifact-type {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background: var(--wood-pale);
+    padding: 0.1rem 0.4rem;
+    border-radius: 2px;
+    color: var(--ink-gray);
+    text-transform: uppercase;
+}
+
+.artifact-meta {
+    font-size: 0.8rem;
+    color: var(--ink-gray);
+    opacity: 0.7;
+}
+
+.artifact-files {
+    font-size: 0.85rem;
+    color: var(--ink-gray);
+    margin-left: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Classification list */
+.classification-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.class-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    background: var(--wood-pale);
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    border: 1px solid var(--wood-light);
+}
+
+.class-number {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--ink-black);
+}
+
+.class-number a {
+    color: var(--ink-black);
+    text-decoration: none;
+}
+
+.class-number a:hover {
+    color: var(--accent-gold);
+}
+
+.class-label {
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
+    color: var(--ink-gray);
+}
+
+/* Tag list */
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.card-tag {
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    background: var(--wood-pale);
+    color: var(--ink-black);
+    padding: 0.15rem 0.5rem;
+    border-radius: 2px;
+    text-decoration: none;
+    border: 1px solid var(--wood-light);
+    transition: all 0.2s;
+}
+
+.card-tag:hover {
+    background: var(--accent-gold);
+    color: var(--ink-black);
+}
+
+/* Topic list */
+.topic-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.card-topic {
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
+    background: var(--drawer-bg);
+    color: var(--wood-pale);
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    text-decoration: none;
+    border: 1px solid var(--wood-medium);
+    transition: all 0.2s;
+}
+
+.card-topic:hover {
+    background: var(--wood-medium);
+    color: var(--card-cream);
 }
 
 /* Form elements */

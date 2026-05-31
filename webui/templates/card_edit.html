@@ -64,6 +64,26 @@
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label">Sources (JSON, one per line)</label>
+                    <textarea name="sources_json" class="form-textarea" rows="4" placeholder='{"type": "url", "uri": "https://example.com", "content_type": "text/html"}'>{% for src in card.sources %}
+{{ src.to_dict() | tojson }}{% endfor %}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Format</label>
+                    <select name="format" class="form-input">
+                        <option value="url_fetch"{% if card.format == 'url_fetch' %} selected{% endif %}>URL Fetch</option>
+                        <option value="text_paste"{% if card.format == 'text_paste' %} selected{% endif %}>Text Paste</option>
+                        <option value="artifact_drop"{% if card.format == 'artifact_drop' %} selected{% endif %}>Artifact Drop</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">UDC Label</label>
+                    <input type="text" name="udc_label" class="form-input" value="{{ card.udc_label or '' }}">
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">Tags (comma-separated)</label>
                     <input type="text" name="tags" class="form-input" value="{{ card.tags|join(', ') }}">
                 </div>

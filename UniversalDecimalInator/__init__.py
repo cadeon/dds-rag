@@ -8,7 +8,7 @@ __version__ = "0.1.0"
 
 from UniversalDecimalInator.reference import ClassificationReference
 from UniversalDecimalInator.card_writer import CardWriter
-from UniversalDecimalInator.models import Card, UDCClassification
+from UniversalDecimalInator.models import Card, UDCClassification, Source, CARD_FORMAT_VERSION
 from UniversalDecimalInator.fs import (
     card_to_markdown,
     markdown_to_card,
@@ -28,6 +28,8 @@ __all__ = [
     "CardWriter",
     "Card",
     "UDCClassification",
+    "Source",
+    "CARD_FORMAT_VERSION",
     "card_to_markdown",
     "markdown_to_card",
     "write_card",

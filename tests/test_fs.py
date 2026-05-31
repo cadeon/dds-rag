@@ -21,7 +21,7 @@ from UniversalDecimalInator.fs import (
     search_cards,
     catalog_stats,
 )
-from UniversalDecimalInator.models import Card, UDCClassification
+from UniversalDecimalInator.models import Card, UDCClassification, Source, CARD_FORMAT_VERSION
 from UniversalDecimalInator.reference import ClassificationReference
 
 UDC_REF = os.path.join(
@@ -77,6 +77,77 @@ class TestCardToMarkdown:
         md = card_to_markdown(sample_card)
         assert "004.738.5" in md
 
+    def test_has_card_section(self, sample_card):
+        md = card_to_markdown(sample_card)
+        assert "## Card: Machine Learning Basics" in md
+
+    def test_has_classification_section(self, sample_card):
+        md = card_to_markdown(sample_card)
+        assert "## Classification" in md
+        assert "Primary: 004.738.5" in md
+
+    def test_has_content_section(self, sample_card):
+        md = card_to_markdown(sample_card)
+        assert "## Content" in md
+
+    def test_has_tags_in_classification(self, sample_card):
+        md = card_to_markdown(sample_card)
+        assert "Tags: machine-learning, ai" in md
+
+    def test_has_source_section(self, sample_card, kb, ref):
+        sample_card.sources = [Source(type="url", uri="https://example.com/ml", content_type="text/html")]
+        sample_card.author = "Test Author"
+        md = card_to_markdown(sample_card)
+        assert "## Source" in md
+        assert "url: https://example.com/ml" in md
+        assert "Author: Test Author" in md
+
+    def test_no_source_section_when_empty(self, sample_card):
+        sample_card.sources = []
+        sample_card.source_url = ""
+        sample_card.author = ""
+        md = card_to_markdown(sample_card)
+        assert "## Source" not in md
+
+    def test_version_in_frontmatter(self, sample_card):
+        md = card_to_markdown(sample_card)
+        assert f"version: '{CARD_FORMAT_VERSION}'" in md or f'version: "{CARD_FORMAT_VERSION}"' in md
+
+    def test_format_in_frontmatter(self, sample_card):
+        sample_card.format = "url_fetch"
+        md = card_to_markdown(sample_card)
+        assert "format: url_fetch" in md
+
+    def test_udc_label_in_frontmatter(self, sample_card):
+        sample_card.udc_label = "Computer & information sciences & AI"
+        md = card_to_markdown(sample_card)
+        assert "udc_label" in md
+        assert "Computer & information sciences" in md
+
+    def test_sources_in_frontmatter(self, sample_card):
+        sample_card.sources = [Source(type="url", uri="https://example.com", content_type="text/html")]
+        md = card_to_markdown(sample_card)
+        assert "sources:" in md
+        assert "uri: https://example.com" in md
+        assert "content_type: text/html" in md
+
+    def test_multiple_sources(self, sample_card):
+        sample_card.sources = [
+            Source(type="url", uri="https://example.com/page"),
+            Source(type="file", uri="local-report.pdf", content_type="application/pdf", artifacts=["report.pdf"])
+        ]
+        md = card_to_markdown(sample_card)
+        assert "url: https://example.com/page" in md
+        assert "file: local-report.pdf" in md
+        assert "artifacts: report.pdf" in md
+
+    def test_source_url_not_in_new_frontmatter(self, sample_card):
+        """New cards should not have source_url in frontmatter, only sources."""
+        sample_card.sources = [Source(type="url", uri="https://example.com/ml")]
+        sample_card.source_url = ""
+        md = card_to_markdown(sample_card)
+        assert "source_url" not in md
+
 
 class TestMarkdownToCard:
     def test_parse_card(self, sample_card):
@@ -86,10 +157,50 @@ class TestMarkdownToCard:
         assert card.title == "Machine Learning Basics"
         assert card.classification.primary == "004.738.5"
 
+    def test_content_extracted_from_section(self, sample_card):
+        """New format: content extracted from ## Content section only."""
+        md = card_to_markdown(sample_card)
+        card = markdown_to_card(md)
+        assert card.content == "This is about machine learning."
+        # The structured body sections should NOT be in the content
+        assert "## Classification" not in card.content
+        assert "## Card:" not in card.content
+
+    def test_old_format_backward_compat(self):
+        """Old format: bare content after frontmatter still works."""
+        old_md = "---\nid: old-card\ntitle: Old Format\nabstract: Old style card\nclassification:\n  primary: '000'\n  secondary: []\ntags: []\ntopics: []\nsource_url: ''\nauthor: ''\ncreated_at: '2026-01-01T00:00:00'\nupdated_at: '2026-01-01T00:00:00'\n---\n\nThis is bare content with no sections."
+        card = markdown_to_card(old_md)
+        assert card.id == "old-card"
+        assert card.content == "This is bare content with no sections."
+
     def test_plain_text(self):
         card = markdown_to_card("just some text")
         assert card.id == "unknown"
         assert card.content == "just some text"
+
+    def test_source_url_migration(self):
+        """Old cards with source_url should get it migrated to sources."""
+        old_md = "---\nid: old-card\ntitle: Old Format\nabstract: Old style card\nclassification:\n  primary: '000'\n  secondary: []\ntags: []\ntopics: []\nsource_url: 'https://example.com/old'\nauthor: ''\ncreated_at: '2026-01-01T00:00:00'\nupdated_at: '2026-01-01T00:00:00'\n---\n\nThis is bare content with no sections."
+        card = markdown_to_card(old_md)
+        assert card.id == "old-card"
+        assert len(card.sources) == 1
+        assert card.sources[0].uri == "https://example.com/old"
+        assert card.sources[0].type == "url"
+
+    def test_new_sources_parsed(self):
+        """New cards with sources list should parse correctly."""
+        new_md = "---\nid: new-card\ntitle: New Format\nabstract: New style card\nclassification:\n  primary: '004.738.5'\n  secondary: []\ntags: []\ntopics: []\nsources:\n  - type: url\n    uri: 'https://example.com/new'\n    content_type: text/html\n    artifacts:\n      - page.html\nauthor: ''\nformat: url_fetch\nudc_label: Computer & AI\nversion: '1'\ncreated_at: '2026-01-01T00:00:00'\nupdated_at: '2026-01-01T00:00:00'\n---\n\n## Card: New Format\n\nNew style card\n\n## Classification\nPrimary: 004.738.5\n\n## Content\n\nThis is the actual content.\n"
+        card = markdown_to_card(new_md)
+        assert card.id == "new-card"
+        assert len(card.sources) == 1
+        assert card.sources[0].type == "url"
+        assert card.sources[0].uri == "https://example.com/new"
+        assert card.sources[0].content_type == "text/html"
+        assert card.sources[0].artifacts == ["page.html"]
+        assert card.format == "url_fetch"
+        assert card.udc_label == "Computer & AI"
+        assert card.version == "1"
+        assert card.content == "This is the actual content."
 
 
 class TestWriteCard:
@@ -110,6 +221,12 @@ class TestWriteCard:
         src = Path(kb) / "sources" / "test-ml.txt"
         assert src.exists()
         assert src.read_text() == "https://example.com/ml"
+
+    def test_creates_artifact_dir(self, sample_card, kb, ref):
+        sample_card.sources = [Source(type="url", uri="https://example.com/ml")]
+        write_card(sample_card, kb, ref)
+        artifact_dir = Path(kb) / "artifacts" / "test-ml"
+        assert artifact_dir.is_dir()
 
 
 class TestReadCard:

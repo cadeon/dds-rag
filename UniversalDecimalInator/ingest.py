@@ -23,7 +23,7 @@ def ingest(
     author: str = "",
 ) -> Card:
     writer = CardWriter(reference=ref)
-    card = writer.write_card(title, content, source_url, author)
+    card = writer.write_card(title, content, source_url, author, kb_path=kb_path)
     write_card(card, kb_path, ref)
     logger.info("Ingested: %s -> %s", title, card.classification.primary)
     return card
