@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +12,8 @@ import requests
 
 from dds_rag.ddc import get_ddc_tree, get_parent
 from dds_rag.models import Card, DDCClassification
+
+logger = logging.getLogger(__name__)
 
 
 # Load the prompt template
@@ -72,10 +75,25 @@ class CardWriter:
         self.max_abstract_length = max_abstract_length
 
     def write(self, text: str, preferred_ddc: list[float] | None = None) -> Card:
-        """Create a catalog card from document text."""
+        """Create a catalog card from document text, with retries on LLM failure."""
         prompt = self._build_prompt(text, preferred_ddc)
-        result = self._call_llm(prompt)
-        return self._parse_result(result, text)
+        max_attempts = 3
+        last_error = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                result = self._call_llm(prompt)
+                return self._parse_result(result, text)
+            except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
+                last_error = e
+                logger.warning(
+                    "Card write attempt %d/%d failed: %s", attempt, max_attempts, e
+                )
+                if attempt < max_attempts:
+                    # Slightly increase temperature on retry to encourage different output
+                    self.temperature = min(self.temperature + 0.1, 0.5)
+        raise RuntimeError(
+            f"Failed to create card after {max_attempts} attempts: {last_error}"
+        ) from last_error
 
     def _build_prompt(self, text: str, preferred_ddc: list[float] | None = None) -> str:
         """Build the full prompt for the LLM."""
@@ -117,10 +135,13 @@ Return ONLY the JSON object:
             "max_tokens": 2000,
         }
 
+        logger.debug("Calling LLM: %s (temp=%.2f)", self.model, self.temperature)
         resp = requests.post(url, json=payload, timeout=120)
         resp.raise_for_status()
         data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        content = data["choices"][0]["message"]["content"]
+        logger.info("LLM response received (%d chars)", len(content))
+        return content
 
     def _parse_result(self, llm_output: str, original_text: str) -> Card:
         """Parse LLM JSON output into a Card."""
@@ -157,7 +178,7 @@ Return ONLY the JSON object:
         if len(words) > self.max_abstract_length:
             abstract = " ".join(words[:self.max_abstract_length]) + "..."
 
-        return Card(
+        card = Card(
             id=str(uuid.uuid4()),
             ddc_classifications=classifications,
             ddc_parent=parent,
@@ -168,3 +189,5 @@ Return ONLY the JSON object:
             format=data.get("format", "article"),
             date=data.get("date", "unknown"),
         )
+        logger.info("Card created: %s (DDC: %s)", card.id, [c.number for c in classifications])
+        return card

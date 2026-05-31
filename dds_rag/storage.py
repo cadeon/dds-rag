@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -15,6 +16,8 @@ from dds_rag.models import (
     Card, Chunk, Document, DDCClassification,
     deserialize_json, deserialize_vector, serialize_json, serialize_vector,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Storage:
@@ -36,26 +39,33 @@ class Storage:
         """Create tables and indexes if they don't exist."""
         conn = self._conn
         try:
+            # FTS5 doesn't support IF NOT EXISTS, so drop first and recreate
+            conn.execute("DROP TABLE IF EXISTS cards_fts")
+            conn.execute("DROP TRIGGER IF EXISTS cards_ai")
+            conn.execute("DROP TRIGGER IF EXISTS cards_au")
+            conn.execute("DROP TRIGGER IF EXISTS cards_ad")
+            conn.commit()
+
             conn.executescript("""
                 CREATE TABLE IF NOT EXISTS cards (
                     id TEXT PRIMARY KEY,
                     ddc_classifications BLOB NOT NULL,
                     ddc_parent REAL NOT NULL,
                     abstract TEXT NOT NULL,
-                    tags BLOB NOT NULL,
-                    topics BLOB NOT NULL,
+                    tags TEXT NOT NULL,
+                    topics TEXT NOT NULL,
                     audience TEXT NOT NULL,
                     format TEXT NOT NULL,
                     date TEXT NOT NULL,
                     embedding BLOB
                 );
 
-                CREATE VIRTUAL TABLE IF NOT EXISTS cards_fts USING fts5(
+                CREATE VIRTUAL TABLE cards_fts USING fts5(
                     abstract,
                     tags,
                     topics,
                     content='cards',
-                    content_rowid='id'
+                    content_rowid='rowid'
                 );
 
                 CREATE TABLE IF NOT EXISTS documents (
@@ -75,33 +85,23 @@ class Storage:
                     FOREIGN KEY (document_id) REFERENCES documents(id)
                 );
 
-                -- Indexes
                 CREATE INDEX IF NOT EXISTS idx_cards_ddc_parent ON cards(ddc_parent);
                 CREATE INDEX IF NOT EXISTS idx_documents_card_id ON documents(card_id);
                 CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
 
-                -- Trigger to keep FTS in sync
-                CREATE TRIGGER IF NOT EXISTS cards_ai AFTER INSERT ON cards BEGIN
+                CREATE TRIGGER cards_ai AFTER INSERT ON cards BEGIN
                     INSERT INTO cards_fts(rowid, abstract, tags, topics)
-                    VALUES (new.id, new.abstract,
-                        (SELECT group_concat(json_extract(value, '$'), ', ')
-                         FROM json_each(new.tags)),
-                        (SELECT group_concat(json_extract(value, '$'), ', ')
-                         FROM json_each(new.topics)));
+                    VALUES (new.rowid, new.abstract, new.tags, new.topics);
                 END;
 
-                CREATE TRIGGER IF NOT EXISTS cards_ad AFTER DELETE ON cards BEGIN
-                    DELETE FROM cards_fts WHERE rowid = old.id;
+                CREATE TRIGGER cards_au AFTER UPDATE ON cards BEGIN
+                    DELETE FROM cards_fts WHERE rowid = old.rowid;
+                    INSERT INTO cards_fts(rowid, abstract, tags, topics)
+                    VALUES (new.rowid, new.abstract, new.tags, new.topics);
                 END;
 
-                CREATE TRIGGER IF NOT EXISTS cards_au AFTER UPDATE ON cards BEGIN
-                    DELETE FROM cards_fts WHERE rowid = old.id;
-                    INSERT INTO cards_fts(rowid, abstract, tags, topics)
-                    VALUES (new.id, new.abstract,
-                        (SELECT group_concat(json_extract(value, '$'), ', ')
-                         FROM json_each(new.tags)),
-                        (SELECT group_concat(json_extract(value, '$'), ', ')
-                         FROM json_each(new.topics)));
+                CREATE TRIGGER cards_ad AFTER DELETE ON cards BEGIN
+                    DELETE FROM cards_fts WHERE rowid = old.rowid;
                 END;
             """)
             conn.commit()
@@ -114,8 +114,8 @@ class Storage:
         conn = self._conn
         try:
             ddc_blob = serialize_json([c.to_dict() for c in card.ddc_classifications])
-            tags_blob = serialize_json(card.tags)
-            topics_blob = serialize_json(card.topics)
+            tags_str = json.dumps(card.tags)
+            topics_str = json.dumps(card.topics)
             emb_blob = serialize_vector(card.embedding) if card.embedding else None
 
             conn.execute(
@@ -124,7 +124,7 @@ class Storage:
                     audience, format, date, embedding)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (card.id, ddc_blob, card.ddc_parent, card.abstract,
-                 tags_blob, topics_blob, card.audience, card.format,
+                 tags_str, topics_str, card.audience, card.format,
                  card.date, emb_blob),
             )
             conn.commit()
@@ -212,6 +212,13 @@ class Storage:
     def delete_card(self, card_id: str) -> bool:
         conn = self._conn
         try:
+            # Check if card exists first
+            existing = conn.execute(
+                "SELECT id FROM cards WHERE id = ?", (card_id,)
+            ).fetchone()
+            if not existing:
+                logger.debug("Card not found for deletion: %s", card_id)
+                return False
             # Delete associated document and chunks first
             doc = conn.execute(
                 "SELECT id FROM documents WHERE card_id = ?", (card_id,)
@@ -220,8 +227,31 @@ class Storage:
                 conn.execute("DELETE FROM chunks WHERE document_id = ?", (doc["id"],))
                 conn.execute("DELETE FROM documents WHERE id = ?", (doc["id"],))
             conn.execute("DELETE FROM cards WHERE id = ?", (card_id,))
+            # FTS5 trigger handles cards_fts cleanup via AFTER DELETE trigger
             conn.commit()
+            logger.info("Card deleted: %s", card_id)
             return True
+        finally:
+            conn.close()
+
+    def rebuild_bm25(self) -> int:
+        """Rebuild the BM25 (FTS5) index from scratch.
+
+        Returns the number of cards reindexed.
+        """
+        conn = self._conn
+        try:
+            conn.execute("DELETE FROM cards_fts")
+            rows = conn.execute(
+                "SELECT rowid, abstract, tags, topics FROM cards"
+            ).fetchall()
+            for row in rows:
+                conn.execute(
+                    "INSERT INTO cards_fts(rowid, abstract, tags, topics) VALUES (?, ?, ?, ?)",
+                    (row["rowid"], row["abstract"], row["tags"], row["topics"]),
+                )
+            conn.commit()
+            return len(rows)
         finally:
             conn.close()
 
@@ -289,16 +319,18 @@ class Storage:
             if candidate_ids:
                 placeholders = ",".join("?" for _ in candidate_ids)
                 sql = f"""
-                    SELECT rowid as id, rank as score
+                    SELECT c.id, cards_fts.rank as score
                     FROM cards_fts
-                    WHERE cards_fts MATCH ? AND rowid IN ({placeholders})
+                    JOIN cards c ON c.rowid = cards_fts.rowid
+                    WHERE cards_fts MATCH ? AND c.id IN ({placeholders})
                     ORDER BY rank
                 """
                 rows = conn.execute(sql, [query] + candidate_ids).fetchall()
             else:
                 rows = conn.execute(
-                    """SELECT rowid as id, rank as score
+                    """SELECT c.id, cards_fts.rank as score
                        FROM cards_fts
+                       JOIN cards c ON c.rowid = cards_fts.rowid
                        WHERE cards_fts MATCH ?
                        ORDER BY rank""",
                     (query,),
@@ -403,8 +435,9 @@ class Storage:
 
     def _row_to_card(self, row: sqlite3.Row) -> Card:
         classifications = deserialize_json(row["ddc_classifications"])
-        tags = deserialize_json(row["tags"])
-        topics = deserialize_json(row["topics"])
+        # tags/topics are now TEXT columns (JSON strings), not BLOBs
+        tags = json.loads(row["tags"])
+        topics = json.loads(row["topics"])
         embedding = deserialize_vector(row["embedding"])
         return Card(
             id=row["id"],

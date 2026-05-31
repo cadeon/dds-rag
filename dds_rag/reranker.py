@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 import requests
+
+logger = logging.getLogger(__name__)
 
 CROSS_ENCODER_AVAILABLE = False
 try:
@@ -14,6 +18,10 @@ except ImportError:
 
 class Reranker:
     """Rerank query-chunk pairs using a cross-encoder model."""
+
+    # BAAI/bge-reranker-base has a max sequence length of 512
+    # Reserve 64 tokens for the query, leave 448 for documents
+    MAX_DOCUMENT_LENGTH = 448
 
     def __init__(
         self,
@@ -31,10 +39,12 @@ class Reranker:
                 self._local_model = CrossEncoder(model)
                 self._mode = "local"
             except Exception:
+                logger.warning("Failed to load cross-encoder model '%s' — reranking disabled", model)
                 self._mode = "none"
         elif endpoint:
             self._mode = "remote"
         else:
+            logger.warning("No reranker backend available — reranking disabled")
             self._mode = "none"
 
     def rerank(
@@ -66,8 +76,24 @@ class Reranker:
 
         return indexed
 
+    @classmethod
+    def _truncate(cls, text: str, max_chars: int = 2000) -> str:
+        """Truncate text to fit within model context window.
+
+        ~448 tokens ≈ 2000 chars for typical English text.
+        Preserves sentence boundaries when possible.
+        """
+        if len(text) <= max_chars:
+            return text
+        truncated = text[:max_chars]
+        # Try to cut at sentence boundary
+        last_period = truncated.rfind(".")
+        if last_period > max_chars * 0.5:
+            truncated = truncated[:last_period + 1]
+        return truncated
+
     def _rerank_local(self, query: str, texts: list[str]) -> list[float]:
-        pairs = [[query, text] for text in texts]
+        pairs = [[query, self._truncate(text)] for text in texts]
         scores = self._local_model.predict(pairs)
         return scores.tolist() if hasattr(scores, "tolist") else list(scores)
 
@@ -81,7 +107,7 @@ class Reranker:
         payload = {
             "model": self.model_name,
             "query": query,
-            "documents": texts,
+            "documents": [self._truncate(t) for t in texts],
         }
 
         resp = requests.post(url, json=payload, headers=headers, timeout=60)
