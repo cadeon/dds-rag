@@ -1,4 +1,4 @@
-/* DDS-RAG Card Catalog - Library Aesthetic */
+/* UniversalDecimalInator Card Catalog - Library Aesthetic */
 
 :root {
     --wood-dark: #5c3a1e;
@@ -224,7 +224,7 @@ body {
     background: linear-gradient(90deg, var(--wood-light), transparent);
 }
 
-/* DDC Shelves / Drawers */
+/* UDC Shelves / Drawers */
 .shelf-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -324,7 +324,7 @@ body {
     border-bottom: 1px solid var(--wood-pale);
 }
 
-.card-ddc {
+.card-udc {
     font-family: var(--font-mono);
     font-size: 0.85rem;
     background: var(--wood-pale);
@@ -406,7 +406,7 @@ body {
     border-bottom: 2px solid var(--wood-pale);
 }
 
-.card-detail-ddc {
+.card-detail-udc {
     font-family: var(--font-mono);
     font-size: 1.2rem;
     background: var(--wood-pale);

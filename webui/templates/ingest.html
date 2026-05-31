@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ingest - DDS-RAG Card Catalog</title>
+    <title>Ingest - UniversalDecimalInator Card Catalog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="catalog-header">
-        <h1 class="catalog-title">DDS-RAG Card Catalog</h1>
+        <h1 class="catalog-title">UniversalDecimalInator Card Catalog</h1>
         <p class="catalog-subtitle">Ingest New Document</p>
     </header>
 
@@ -52,7 +52,7 @@
                 <div class="card-field-label">What happens during ingest?</div>
                 <div class="card-field-value" style="font-size: 0.9rem; line-height: 1.8;">
                     <ol style="padding-left: 1.5rem;">
-                        <li>An LLM reads your document and creates a catalog card with an abstract, tags, topics, and DDC classification</li>
+                        <li>An LLM reads your document and creates a catalog card with an abstract, tags, topics, and UDC classification</li>
                         <li>The card abstract and document chunks are embedded as vectors</li>
                         <li>Everything is stored in the SQLite catalog with FTS5 full-text search</li>
                         <li>Your document is now searchable — no LLM calls needed at query time</li>
@@ -63,7 +63,7 @@
     </main>
 
     <footer class="catalog-footer">
-        DDS-RAG Card Catalog &mdash; All classification at ingest, no LLM at query time
+        UniversalDecimalInator Card Catalog &mdash; All classification at ingest, no LLM at query time
     </footer>
 </body>
 </html>

@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Card - DDS-RAG Card Catalog</title>
+    <title>Edit Card - UniversalDecimalInator Card Catalog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="catalog-header">
-        <h1 class="catalog-title">DDS-RAG Card Catalog</h1>
+        <h1 class="catalog-title">UniversalDecimalInator Card Catalog</h1>
         <p class="catalog-subtitle">Edit Card</p>
     </header>
 
@@ -34,8 +34,8 @@
         <div class="card-detail">
             <form method="POST" action="{{ url_for('card_edit', card_id=card.id) }}">
                 <div class="form-group">
-                    <label class="form-label">DDC Classification</label>
-                    <input type="text" name="ddc_number" class="form-input" value="{{ card.ddc_parent }}" placeholder="e.g. 516.37">
+                    <label class="form-label">UDC Classification</label>
+                    <input type="text" name="udc_number" class="form-input" value="{{ card.primary_classification }}" placeholder="e.g. 516.37">
                 </div>
 
                 <div class="form-group">
@@ -62,7 +62,7 @@
     </main>
 
     <footer class="catalog-footer">
-        DDS-RAG Card Catalog &mdash; All classification at ingest, no LLM at query time
+        UniversalDecimalInator Card Catalog &mdash; All classification at ingest, no LLM at query time
     </footer>
 </body>
 </html>

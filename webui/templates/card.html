@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card - DDS-RAG Card Catalog</title>
+    <title>Card - UniversalDecimalInator Card Catalog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="catalog-header">
-        <h1 class="catalog-title">DDS-RAG Card Catalog</h1>
+        <h1 class="catalog-title">UniversalDecimalInator Card Catalog</h1>
         <p class="catalog-subtitle">Card Detail</p>
     </header>
 
@@ -26,7 +26,7 @@
         <div class="breadcrumb">
             <a href="{{ url_for('index') }}">Catalog</a>
             <span class="breadcrumb-sep">&rsaquo;</span>
-            <a href="{{ url_for('ddc_browse', ddc_number=card.ddc_parent) }}">{{ card | primary_ddc }}</a>
+            <a href="{{ url_for('browse', udc_number=card.primary_classification) }}">{{ card.primary_classification }}</a>
             <span class="breadcrumb-sep">&rsaquo;</span>
             <span>{{ card.id[:8] }}</span>
         </div>
@@ -34,7 +34,7 @@
         <div class="card-detail">
             <div class="card-detail-header">
                 <div>
-                    <span class="card-detail-ddc">{{ card | primary_ddc_label }}</span>
+                    <span class="card-detail-udc">{{ card.primary_classification | udc_label }}</span>
                     <span class="card-format" style="margin-left: 0.5rem;">{{ card.format }}</span>
                 </div>
                 <div class="card-detail-actions">
@@ -72,10 +72,10 @@
             </div>
 
             <div class="card-field">
-                <div class="card-field-label">DDC Classifications</div>
+                <div class="card-field-label">UDC Classifications</div>
                 <div class="card-field-value">
-                    {% for cls in card.ddc_classifications %}
-                    <span class="card-ddc" style="margin-right: 0.5rem;">
+                    {% for cls in card.secondary_classifications %}
+                    <span class="card-udc" style="margin-right: 0.5rem;">
                         {{ cls.number }} ({{ "%.0f"|format(cls.confidence * 100) }}%)
                     </span>
                     {% endfor %}
@@ -130,7 +130,7 @@
     </main>
 
     <footer class="catalog-footer">
-        DDS-RAG Card Catalog &mdash; All classification at ingest, no LLM at query time
+        UniversalDecimalInator Card Catalog &mdash; All classification at ingest, no LLM at query time
     </footer>
 </body>
 </html>

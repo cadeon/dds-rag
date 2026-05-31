@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search - DDS-RAG Card Catalog</title>
+    <title>Search - UniversalDecimalInator Card Catalog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="catalog-header">
-        <h1 class="catalog-title">DDS-RAG Card Catalog</h1>
+        <h1 class="catalog-title">UniversalDecimalInator Card Catalog</h1>
         <p class="catalog-subtitle">Search the Card Catalog</p>
     </header>
 
@@ -34,7 +34,7 @@
                 {% for card in cards %}
                 <a href="{{ url_for('card_detail', card_id=card.id) }}" class="catalog-card">
                     <div class="card-header">
-                        <span class="card-ddc">{{ card | primary_ddc }}</span>
+                        <span class="card-udc">{{ card.primary_classification }}</span>
                         <span class="card-format">{{ card.format }}</span>
                     </div>
                     {% if card.title %}
@@ -56,7 +56,7 @@
             <div class="empty-state">
                 <div class="empty-state-icon">&#128269;</div>
                 <div class="empty-state-text">No cards matched your search</div>
-                <div class="empty-state-hint">Try different keywords or browse by DDC classification</div>
+                <div class="empty-state-hint">Try different keywords or browse by UDC classification</div>
             </div>
             {% endif %}
         {% else %}
@@ -69,7 +69,7 @@
     </main>
 
     <footer class="catalog-footer">
-        DDS-RAG Card Catalog &mdash; All classification at ingest, no LLM at query time
+        UniversalDecimalInator Card Catalog &mdash; All classification at ingest, no LLM at query time
     </footer>
 </body>
 </html>

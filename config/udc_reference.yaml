@@ -1,0 +1,453 @@
+name: UDC
+version: '1.0'
+description: Universal Decimal Classification - curated subset for LLM classification
+syntax:
+  compound_separator: ':'
+  compound_label: in connection with
+  standard_subdivision_prefix: '-'
+  geographic_facet_prefix: (
+main_classes:
+  '0': General works, computer science, information
+  '1': Philosophy, psychology, religions
+  '2': Religion, denominational movements
+  '3': Social sciences, law, education
+  '4': Language, linguistics
+  '5': Natural sciences, mathematics
+  '6': Technology, medicine
+  '7': Arts, recreation, sports
+  '8': Literature
+  '9': Geography, history, biography
+classes:
+  '004': Computer science, programming, databases
+  '004.7': Software engineering
+  '004.73': Programming languages
+  '004.738': Artificial intelligence
+  004.738.5: Machine learning
+  '004.74': Computer networks
+  '005': Information science, information technology
+  '006': Special computer methods
+  '01': Bibliographies
+  '02': Library science, information management
+  '03': Encyclopedias, general works
+  '05': Serial publications, journals
+  '06': Organizations
+  '07': Journalism, publishing
+  '08': Newspapers
+  '1': Philosophy, psychology
+  1/19: Philosophy and psychology
+  '14': Materialism, monism, idealism
+  '15': Psychology
+  '159.9': Human behavior, personality
+  '159.923': Intelligence
+  '159.95': Emotions
+  '16': Logic
+  '17': Ethics, moral philosophy
+  17/19: Ethics and applied ethics
+  '179.4': Bioethics, medical ethics
+  '179.5': Social ethics
+  '179.7': Professional ethics
+  '179.8': Environmental ethics
+  '18': Ancient, medieval, Eastern philosophy
+  '19': Modern Western philosophy
+  '2': Religion, denominational movements
+  '21': General religion
+  '22': Bible
+  '23': Christianity
+  '24': Christian practice
+  '29': Other religions
+  '3': Social sciences, society, social sciences
+  '303.43': Sociology of information
+  '304.2': Family
+  '305.4': Race, ethnicity, social groups
+  '305.5': Social classes
+  '305.8': Women, gender
+  '31': Statistics
+  '32': Political science
+  '321': Political theory
+  '322': Political systems
+  '323.4': Public policy
+  '324': Political parties
+  '327': Political organizations
+  '328': Public finance
+  '329.78': United Nations
+  '33': Economics
+  '330.1': Economic theory
+  '331': Labor, workforce
+  '332': Economic theory, demography
+  '333': Monetary theory
+  '334': Financial economics
+  '335': Public economics, taxation
+  '336': Economic history
+  '338': Specific industries, commerce
+  '338.2': Industry, specific sectors
+  '338.24': Tourism industry
+  '338.48': Information industry
+  '339.13': Consumer protection
+  '34': Law
+  '340.13': Intellectual property law
+  '341': Legal professions
+  '342': Constitutional law
+  '343': Domestic law
+  '343.7': Administrative law
+  '344': Property law
+  '345': Criminal law
+  '347': Military law
+  '349.2': European law
+  '349.7': American law
+  '35': Public administration
+  '36': Social services, welfare
+  '361': Social welfare
+  '362': Associations, organizations
+  '363': Insurance
+  '364': Labor relations
+  '366': Crime
+  '367': Law enforcement
+  '37': Education
+  '371': Educational institutions
+  '372': Primary education
+  '373': Secondary education
+  '374': Higher education
+  '378': Adult education
+  '379.6': Online education, e-learning
+  '38': Commerce, communications, transport
+  '380.44': E-commerce, electronic commerce
+  '382': Advertising
+  '384': Postal services
+  '386': Rail transport
+  '387': Water transport
+  '388': Air transport
+  '39': Customs, etiquette, folklore
+  '4': Language, linguistics
+  '41': Linguistics
+  '411': Phonetics
+  '412': Phonology
+  '413': Morphology
+  '414': Syntax
+  '415': Lexicography, dictionaries
+  '416': Semantics
+  '417': Pragmatics
+  '419.4': Computational linguistics, NLP
+  '42': English
+  '43': Germanic languages
+  '44': Roman languages
+  '45': Italian, Romanian
+  '46': Spanish, Portuguese
+  '47': Latin
+  '48': Greek
+  '49': Other languages
+  '496': Japanese
+  '497': Korean
+  '498': Chinese
+  '5': Natural sciences, mathematics
+  '51': Mathematics
+  '512': Algebra
+  '512.8': Linear algebra
+  '513': Number theory
+  '514': Geometry
+  '514.7': Differential geometry
+  '515': Topology
+  '519.6': Functional analysis
+  '519.68': Numerical analysis
+  '519.684': Artificial intelligence (mathematics)
+  '519.8': Probability, statistics
+  '52': Astronomy
+  '53': Physics
+  '531': Mechanics
+  '533': Acoustics
+  '535': Thermodynamics
+  '537': Electromagnetism
+  '539': Atomic, molecular physics
+  '54': Chemistry
+  '541': Pure chemistry
+  '543': Physical chemistry
+  '544': Organic chemistry
+  '546': Applied chemistry
+  '547': Mineralogy
+  '55': Earth sciences
+  '551': Geology
+  '551.5': Paleontology
+  '551.79': Volcanology
+  '553': Meteorology, climatology
+  '556': Oceanography
+  '56': Ancient life, paleontology
+  '57': Biology, life sciences
+  '574': Genetics
+  '576': Biochemistry, molecular biology
+  '577': Microbiology
+  '579': Botany
+  '59': Zoology, animals
+  '591': Comparative anatomy
+  '592': Ethology, animal behavior
+  '597': Ornithology, birds
+  '599': Mammalogy, mammals
+  '6': Technology, medicine
+  '61': Medicine, health
+  '612': Human anatomy
+  '613': Human physiology
+  '614': Surgery
+  '615': Therapeutics, pharmacology
+  '616': Medicine, diseases
+  '616.1': Nervous system diseases
+  '616.2': Cardiovascular diseases
+  '616.3': Digestive system diseases
+  '616.5': Respiratory diseases
+  '616.99': Infectious diseases
+  '617': Surgery, surgical specialties
+  '618': Obstetrics, gynecology
+  '618.197': Pregnancy, childbirth
+  '619': Veterinary medicine
+  '62': Engineering
+  '621': General engineering, mechanics
+  '621.3': Electrical engineering
+  '621.396': Computers, computer engineering
+  '624': Civil engineering
+  '625': Mechanical engineering
+  '626': Chemical engineering
+  '627': Hydraulic engineering
+  '627.32': Hydropower, hydroelectric plants
+  '629': Other engineering
+  '629.7': Aerospace engineering
+  '63': Agriculture
+  '631': Agronomy
+  '632': Soil science
+  '633': Crop production
+  '635': Horticulture
+  '636': Fruit, vegetable growing
+  '637': Arboriculture
+  '638': Animal husbandry
+  '64': Home economics
+  '641': Household equipment
+  '643': Cookery, food preparation
+  '644': Specific foods
+  '647': Clothing, textiles
+  '65': Management, administration
+  '658': Marketing, advertising
+  '658.152': Tourism marketing
+  '658.3': Public relations
+  '658.8': E-marketing, digital marketing
+  '66': Chemical engineering
+  '662': Metallurgy
+  '666': Plastics, polymers
+  '667': Metallurgy, metal processing
+  '67': Manufacturing
+  '677': Printing
+  '678': Food manufacturing
+  '68': Manufacturing for specific uses
+  '681': Building materials
+  '686': Transportation equipment
+  '687': Recreational equipment
+  '688': Textiles
+  '69': Construction, buildings
+  '7': Arts, recreation, sports
+  '704': Art education
+  '72': Architecture
+  '73': Plastic arts, sculpture, crafts
+  '74': Drawing, decorative arts
+  '75': Painting, paintings
+  '76': Printmaking, prints
+  '77': Photography
+  '78': Music
+  '781': Vocal music
+  '782': Instrumental music
+  '786': Popular music, jazz
+  '786.2': Rock music
+  '786.3': Country music
+  '786.6': Hip-hop, rap
+  '786.7': Electronic music
+  '79': Recreation, performing arts
+  '791': Dance
+  '792': Opera
+  '793': Theater
+  '793.7': Cinema, film
+  '794': Cinema, film
+  '796': Sports
+  '796.32': Soccer, football
+  '796.33': Basketball
+  '796.357': Baseball
+  '796.4': Golf
+  '796.7': Swimming
+  '796.8': Cycling
+  '796.96': Motorsports
+  '797': Team sports
+  '797.1': American football
+  '797.2': Ice hockey
+  '797.3': Cricket
+  '797.4': Tennis
+  '797.6': Rugby
+  '797.9': E-sports, video games
+  '798': Individual sports
+  '799': Gaming, gambling
+  '8': Literature, rhetoric
+  '801': Literary forms
+  '808': Rhetoric, public speaking
+  '808.82': Humor, satire
+  '809': Literary history, criticism
+  '811': English poetry
+  '821': English prose fiction
+  '823': English drama
+  '830': Germanic literature
+  '840': Romanic literature
+  '850': Other literatures
+  '851': Latin literature
+  '891': Asian literatures
+  '891.71': Japanese literature
+  '891.72': Korean literature
+  '891.81': Chinese literature
+  '9': Geography, history, biography
+  '902': Historical auxiliary disciplines
+  '904': World history
+  '909': History of specific regions
+  '91': Geography, travel
+  '92': Biography, genealogy
+  '929': Collective biography
+  '93': Ancient world
+  '94': European history
+  '940.42': European Union
+  '95': Asian history
+  '96': African history
+  '97': History of America
+  '973': United States history
+  '977': Central America history
+  '98': South American history
+  '99': History of other regions
+standard_subdivisions:
+  '-0': General
+  '-001': Internal structure
+  '-002': Science, research
+  '-002.1': Theory, principles
+  '-002.4': Microscopic study
+  '-002.5': Mathematical, statistical methods
+  '-003': Education, study, research
+  '-003.2': Study, education
+  '-004': Practice, practical aspects
+  '-005': Inventions, discoveries
+  '-006': History
+  '-007': Biography
+  '-008': Periodicals
+  '-009': Collections, anthologies
+  '-01': Dictionaries, encyclopedias
+  '-014': Dictionaries
+  '-015': Encyclopedias
+  '-016': Handbooks, manuals
+  '-018': Textbooks
+  '-019': Glossaries, thesauri
+  '-02': Writing on, individual authors
+  '-03': Speeches, addresses
+  '-05': Economics, finance
+  '-055': Economics
+  '-055.2': Economics, financial aspects
+  '-056': Law, legislation
+  '-057': Statistics
+  '-058': Maps, cartography
+  '-06': Organizations, management
+  '-066': Associations, societies
+  '-066.4': International organizations
+  '-066.9': Museums, exhibitions
+  '-07': Press, journalism
+  '-08': Fine arts, performing arts
+  '-086': Music
+  '-086.2': Songs, musical compositions
+  '-086.3': Opera, musical theater
+  '-086.5': Film, cinema
+  '-086.9': Television, radio
+  '-09': Geography, travel
+  '-091': Geography, description
+  '-094': Europe
+  '-095': Asia
+  '-096': Africa
+  '-097': North America
+  '-097.3': United States
+  '-098': South America
+form_numbers:
+  '-1': By form of presentation
+  '-2': Treatises, monographs
+  '-3': By nationality
+  '-4': By place
+  '-5': Economics, finance
+  '-6': Organizations, associations
+  '-7': Press, periodicals
+  '-8': Fine arts, performing arts
+  '-9': By place, geography
+geographic_table:
+  (004): Europe
+  (004.2): Western Europe
+  (004.4): Central Europe
+  (004.7): Northern Europe
+  (004.9): Southern Europe
+  (004.95): Italy
+  (004.96): Spain, Portugal
+  (005): Asia
+  (005.2): Eastern Asia
+  (005.5): Southern Asia
+  (005.6): Southeastern Asia
+  (005.7): Western Asia
+  (005.95): Japan
+  (005.96): Korea
+  (005.97): China
+  (005.98): India
+  (006): Africa
+  (007): America
+  (007.1): North America
+  (007.2): South America
+  (007.3): United States
+  (007.7): Mexico, Central America
+  (007.71): Guatemala
+  (007.8): Brazil
+  (007.9): Argentina
+  (008): Oceania
+  (009): Polar regions
+  (2): By continent
+  (3): By nationality
+  (4): By place, countries
+  (41): Albania
+  (42): United Kingdom
+  (43): Germany
+  (44): France
+  (45): Italy
+  (46): Spain
+  (47): Austria
+  (48): Switzerland
+  (49): Netherlands
+  (50): Belgium
+  (51): Poland
+  (52): Russia
+  (53): Ukraine
+  (54): Czech Republic
+  (55): Romania
+  (56): Hungary
+  (57): Greece
+  (58): Turkey
+  (59): Egypt
+  (60): Saudi Arabia
+  (61): Israel
+  (62): Iran
+  (63): Iraq
+  (64): India
+  (65): Pakistan
+  (66): China
+  (67): Japan
+  (68): Korea
+  (69): Indonesia
+  (70): Australia
+  (71): New Zealand
+  (72): Canada
+  (73): United States
+  (74): Mexico
+  (74.1): Guatemala
+  (75): Brazil
+  (76): Argentina
+  (77): Chile
+  (78): Colombia
+  (79): Venezuela
+temporal_table:
+  (/08): Time span
+  (08): By time, period
+  (08/08.9): Historical periods
+  (081): Prehistory
+  (082): Ancient history
+  (083): Middle Ages
+  (084): Modern period
+  (085): Contemporary period
+  (086): 20th century
+  (087): 21st century
+

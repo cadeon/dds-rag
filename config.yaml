@@ -1,4 +1,4 @@
-ddc:
+udc:
   min_confidence: 0.7
   fallback_parent: true
   expand_siblings: true
@@ -26,4 +26,4 @@ retrieval:
 
 storage:
   type: "sqlite"
-  path: "dds_rag.db"
+  path: "UniversalDecimalInator.db"

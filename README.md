@@ -1,25 +1,25 @@
-# DDS-RAG
+# UniversalDecimalInator
 
-Dewey Decimal System Retrieval Augmented Generation.
+Universal Decimal Classification-based document catalog system.
 
-![Vintage card catalog](card-catalog.jpg)
+Ingest documents, classify them with UDC compound numbers, and browse/search
+a card catalog — no LLM calls at query time.
 
-A RAG system that uses Dewey Decimal Classification (DDC) numbers as a hierarchical routing layer. All classification and metadata generation happens at **ingest time** — no LLM calls at query time.
+## Quick Start
 
-## How It Works
-
+```bash
+pip install -e .
+python -m webui.app
 ```
-Ingest:  Document → Summarize → Generate Metadata (DDC + tags) → Embed → Store
-Query:   Query → Metadata Filter → Abstract Match → Vector Search → Rerank → Return
-```
 
-## Key Design
+Browse to `http://localhost:5000`.
 
-- **DDC numbers** narrow the search space before vector search (100K docs → ~200 in a branch)
-- **Abstracts** provide fast pre-filtering within each branch
-- **Metadata** (tags, topics, audience, format) enables flexible filtering
-- **No per-query LLM calls** — only database indexes and vector math at query time
+## Architecture
 
-## Spec
+Documents are classified into UDC categories at ingest time using compound
+notation (e.g., `004.738.5:179.4` for "machine learning in bioethics"). Cards
+are stored as markdown files in a UDC-hierarchical directory structure.
 
-See [SPEC.md](SPEC.md) for full architecture, API, and configuration details.
+## Configuration
+
+Edit `config/udc_reference.yaml` to customize the classification hierarchy.
