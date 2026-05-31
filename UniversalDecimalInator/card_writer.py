@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
+
+import yaml
 
 from UniversalDecimalInator.models import Card, UDCClassification
 from UniversalDecimalInator.reference import ClassificationReference
@@ -40,25 +43,43 @@ Respond with JSON:
 }}"""
 
 
+def _load_config() -> dict:
+    """Load card_writer config from config.yaml."""
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.yaml"
+    )
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            return yaml.safe_load(f) or {}
+    return {}
+
+
 def _classify_with_llm(title: str, content: str, ref: ClassificationReference) -> dict:
     import urllib.request
     import urllib.error
+
+    config = _load_config()
+    writer_cfg = config.get("card_writer", {})
+    endpoint = writer_cfg.get("endpoint", "http://172.30.250.101:8000/v1")
+    model = writer_cfg.get("model", "qwen3.6-hermes-27b")
+    temperature = writer_cfg.get("temperature", 0.1)
 
     prompt = USER_PROMPT.format(title=title[:500], content=content[:3000])
     system = SYSTEM_PROMPT.format(reference=ref.to_prompt_reference()[:6000])
 
     payload = json.dumps({
-        "model": "qwen3.6-hermes-27b",
+        "model": model,
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ],
-        "temperature": 0.1,
+        "temperature": temperature,
         "max_tokens": 1000,
     }).encode()
 
+    url = f"{endpoint}/chat/completions"
     req = urllib.request.Request(
-        "http://172.30.250.101:8000/v1/chat/completions",
+        url,
         data=payload,
         headers={"Content-Type": "application/json"},
         method="POST",

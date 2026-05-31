@@ -5,28 +5,13 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+import yaml
+
 from UniversalDecimalInator.fs import list_cards, read_card, write_card
 from UniversalDecimalInator.models import Card, UDCClassification
 from UniversalDecimalInator.reference import ClassificationReference
 
 logger = logging.getLogger(__name__)
-
-
-def catalog_stats(kb_path: str | Path) -> dict:
-    cards = list_cards(kb_path)
-    total = len(cards)
-    main_class_dist: dict[str, int] = {}
-    tag_counts: dict[str, int] = {}
-    for card in cards:
-        mc = card.classification.udc_main_class or "uncategorized"
-        main_class_dist[mc] = main_class_dist.get(mc, 0) + 1
-        for tag in card.tags:
-            tag_counts[tag] = tag_counts.get(tag, 0) + 1
-    return {
-        "total_cards": total,
-        "main_class_distribution": main_class_dist,
-        "top_tags": dict(sorted(tag_counts.items(), key=lambda x: -x[1])[:20]),
-    }
 
 
 def reclassify(
@@ -48,8 +33,14 @@ def delete_card(kb_path: str | Path, card_id: str) -> bool:
     for md in kb.rglob("*.md"):
         if md.name == "README.md" or "/sources/" in str(md):
             continue
-        card = read_card(kb_path, md.stem)
-        if card and card.id == card_id:
+        text = md.read_text()
+        if not text.startswith("---"):
+            continue
+        parts = text.split("---", 2)
+        if len(parts) < 3:
+            continue
+        fm = yaml.safe_load(parts[1])
+        if fm.get("id") == card_id:
             md.unlink()
             src = kb / "sources" / f"{card_id}.txt"
             if src.exists():

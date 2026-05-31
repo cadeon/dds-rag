@@ -34,6 +34,11 @@
         <div class="card-detail">
             <form method="POST" action="{{ url_for('card_edit', card_id=card.id) }}">
                 <div class="form-group">
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" class="form-input" value="{{ card.title }}">
+                </div>
+
+                <div class="form-group">
                     <label class="form-label">UDC Classification</label>
                     <input type="text" name="udc_number" class="form-input" value="{{ card.classification.primary }}" placeholder="e.g. 516.37">
                 </div>
@@ -41,6 +46,21 @@
                 <div class="form-group">
                     <label class="form-label">Abstract</label>
                     <textarea name="abstract" class="form-textarea" rows="6">{{ card.abstract }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Content</label>
+                    <textarea name="content" class="form-textarea" rows="12">{{ card.content }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Author</label>
+                    <input type="text" name="author" class="form-input" value="{{ card.author or '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Source URL</label>
+                    <input type="text" name="source_url" class="form-input" value="{{ card.source_url or '' }}">
                 </div>
 
                 <div class="form-group">

@@ -33,18 +33,39 @@ kb/
     519/
       519.684/
         card.md
-  sources/    # Original document text
+  sources/    # Source URLs (one per card, stored as {card_id}.txt)
+```
+
+### Card Format
+
+Each card is a markdown file with YAML frontmatter:
+
+```markdown
+---
+id: my-card-id
+title: "My Document"
+abstract: "Brief summary..."
+primary_classification: "004.738.5"
+secondary_classifications: []
+tags: ["tag1", "tag2"]
+topics: ["Topic Area"]
+source_url: ""
+author: ""
+---
+
+Document content goes here...
 ```
 
 ## Configuration
 
 Edit `config/udc_reference.yaml` to customize the classification hierarchy.
+Edit `config.yaml` for LLM endpoint and model settings.
 
 ## Quick Start
 
 ```bash
-pip install -e .
-python -m webui.app
+pip install -r requirements.txt
+cd webui && python app.py
 ```
 
 Browse to `http://localhost:5000`.

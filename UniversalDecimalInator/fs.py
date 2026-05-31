@@ -39,6 +39,7 @@ def markdown_to_card(text: str) -> Card:
         return Card(id="unknown", content=text)
     fm = yaml.safe_load(parts[1])
     content = parts[2].strip()
+    fm["content"] = content
     return Card.from_dict(fm)
 
 

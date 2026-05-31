@@ -35,6 +35,21 @@ ref = ClassificationReference(REF_PATH)
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
+# Cache for catalog stats - invalidated on write operations
+_stats_cache: dict | None = None
+
+
+def get_stats() -> dict:
+    global _stats_cache
+    if _stats_cache is None:
+        _stats_cache = catalog_stats(KB_PATH)
+    return _stats_cache
+
+
+def invalidate_stats():
+    global _stats_cache
+    _stats_cache = None
+
 
 @app.template_filter("udc_label")
 def udc_label(num):
@@ -44,7 +59,7 @@ def udc_label(num):
 @app.before_request
 def load_context():
     g.ref = ref
-    g.stats = catalog_stats(KB_PATH)
+    g.stats = get_stats()
 
 
 @app.route("/")
@@ -93,7 +108,11 @@ def card_edit(card_id):
     if not card:
         return "Card not found", 404
     if request.method == "POST":
+        card.title = request.form.get("title", card.title)
         card.abstract = request.form.get("abstract", card.abstract)
+        card.content = request.form.get("content", card.content)
+        card.author = request.form.get("author", card.author or "")
+        card.source_url = request.form.get("source_url", card.source_url or "")
         card.tags = [t.strip() for t in request.form.get("tags", "").split(",") if t.strip()]
         card.topics = [t.strip() for t in request.form.get("topics", "").split(",") if t.strip()]
         udc_number = request.form.get("udc_number", "").strip()
@@ -102,6 +121,7 @@ def card_edit(card_id):
             card = read_card(KB_PATH, card_id)
         else:
             write_card(card, KB_PATH, ref)
+        invalidate_stats()
         return redirect(url_for("card_detail", card_id=card_id))
     return render_template("card_edit.html", card=card)
 
@@ -121,12 +141,14 @@ def ingest_page():
             result = {"card": card}
         else:
             result = {"error": "Provide either document text or a URL to ingest"}
+        invalidate_stats()
     return render_template("ingest.html", result=result)
 
 
 @app.route("/card/<card_id>/delete", methods=["POST"])
 def card_delete(card_id):
     delete_card(KB_PATH, card_id)
+    invalidate_stats()
     return redirect(url_for("index"))
 
 
