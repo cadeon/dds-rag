@@ -10,7 +10,7 @@ from UniversalDecimalInator.reference import ClassificationReference
 
 UDC_REF = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "config", "udc_reference.yaml",
+    "udc_reference.yaml",
 )
 
 

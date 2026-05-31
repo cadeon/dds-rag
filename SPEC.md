@@ -58,7 +58,7 @@ Document content goes here...
 
 ## Configuration
 
-Edit `config/udc_reference.yaml` to customize the classification hierarchy.
+Edit `udc_reference.yaml` to customize the classification hierarchy.
 Edit `config.yaml` for LLM endpoint and model settings.
 
 ## Quick Start

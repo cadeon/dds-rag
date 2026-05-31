@@ -33,7 +33,7 @@ Browse to `http://localhost:5000` to access the card catalog.
 ## Configuration
 
 Edit `config.yaml` for LLM endpoint and model configuration.
-Edit `config/udc_reference.yaml` for UDC classification hierarchy.
+Edit `udc_reference.yaml` for UDC classification hierarchy.
 
 ## License
 

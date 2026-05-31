@@ -29,7 +29,7 @@ with open(CONFIG_PATH) as f:
 KB_PATH = os.environ.get("KB_PATH", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "kb"))
 os.makedirs(KB_PATH, exist_ok=True)
 
-REF_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "udc_reference.yaml")
+REF_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "udc_reference.yaml")
 ref = ClassificationReference(REF_PATH)
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
