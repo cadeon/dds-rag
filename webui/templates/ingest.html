@@ -28,6 +28,18 @@
             <div class="section-divider"></div>
         </div>
 
+        {% if result and result.error %}
+        <div style="max-width: 800px; margin: 0 auto 1rem; padding: 1rem; background: var(--accent-red); color: white; border-radius: 4px;">
+            {{ result.error }}
+        </div>
+        {% endif %}
+
+        {% if result and result.card %}
+        <div style="max-width: 800px; margin: 0 auto 1rem; padding: 1rem; background: var(--accent-green); color: white; border-radius: 4px;">
+            Ingested: <strong>{{ result.card.title }}</strong> → <a href="{{ url_for('card_detail', card_id=result.card.id) }}" style="color: white;">View Card</a>
+        </div>
+        {% endif %}
+
         <div class="ingest-form">
             <form method="POST" action="{{ url_for('ingest_page') }}">
                 <div class="form-group">
@@ -53,8 +65,7 @@
                 <div class="card-field-value" style="font-size: 0.9rem; line-height: 1.8;">
                     <ol style="padding-left: 1.5rem;">
                         <li>An LLM reads your document and creates a catalog card with an abstract, tags, topics, and UDC classification</li>
-                        <li>The card abstract and document chunks are embedded as vectors</li>
-                        <li>Everything is stored in the SQLite catalog with FTS5 full-text search</li>
+                        <li>The card is stored as a markdown file in the knowledge base, organized by UDC main class</li>
                         <li>Your document is now searchable — no LLM calls needed at query time</li>
                     </ol>
                 </div>

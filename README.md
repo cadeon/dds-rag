@@ -1,25 +1,44 @@
-# UniversalDecimalInator
+# UniversalDecimalInator Card Catalog
 
-Universal Decimal Classification-based document catalog system.
+## Overview
 
-Ingest documents, classify them with UDC compound numbers, and browse/search
-a card catalog — no LLM calls at query time.
+A card catalog system using Universal Decimal Classification (UDC) for organizing and retrieving documents.
 
-## Quick Start
+## Features
+
+- UDC-based classification with compound notation support
+- Card catalog interface with browse and search capabilities
+- Ingest documents via URL or paste
+- Edit and delete cards
+- Full-text search across card content
+
+## Installation
 
 ```bash
 pip install -e .
+```
+
+## Usage
+
+### Command Line
+
+```bash
+python -m UniversalDecimalInator.ingest --url "https://example.com/article"
+python -m UniversalDecimalInator.ingest --file "document.txt"
+```
+
+### Web UI
+
+```bash
 python -m webui.app
 ```
 
-Browse to `http://localhost:5000`.
-
-## Architecture
-
-Documents are classified into UDC categories at ingest time using compound
-notation (e.g., `004.738.5:179.4` for "machine learning in bioethics"). Cards
-are stored as markdown files in a UDC-hierarchical directory structure.
+Browse to `http://localhost:5000` to access the card catalog.
 
 ## Configuration
 
-Edit `config/udc_reference.yaml` to customize the classification hierarchy.
+Edit `config.yaml` for UDC classification settings and LLM endpoint configuration.
+
+## License
+
+CC BY-SA 4.0

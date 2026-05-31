@@ -9,21 +9,3 @@ card_writer:
   endpoint: "http://172.30.250.101:8000/v1"
   max_abstract_length: 100
   temperature: 0.1
-
-embedding:
-  model: "text-embedding-3-small"
-  endpoint: "http://172.30.250.101:8000/v1"
-  dimensions: 1536
-
-reranker:
-  model: "BAAI/bge-reranker-base"
-
-retrieval:
-  top_k: 10
-  fused_top_k: 20
-  chunk_size: 500
-  chunk_overlap: 50
-
-storage:
-  type: "sqlite"
-  path: "UniversalDecimalInator.db"

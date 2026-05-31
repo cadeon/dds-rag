@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniversalDecimalInator Card Catalog</title>
+    <title>Browse {{ udc_number }} - UniversalDecimalInator Card Catalog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <header class="catalog-header">
         <h1 class="catalog-title">UniversalDecimalInator Card Catalog</h1>
-        <p class="catalog-subtitle">Universal Decimal Classification Document Catalog</p>
+        <p class="catalog-subtitle">Browse by UDC Classification</p>
     </header>
 
     <nav class="nav-bar">
-        <a href="{{ url_for('index') }}" class="nav-link active">Catalog</a>
+        <a href="{{ url_for('index') }}" class="nav-link">Catalog</a>
         <a href="{{ url_for('ingest_page') }}" class="nav-link">Ingest</a>
         <a href="{{ url_for('search') }}" class="nav-link">Search</a>
         <form action="{{ url_for('search') }}" method="GET" class="search-bar">
@@ -22,43 +22,40 @@
         </form>
     </nav>
 
-    <div class="stats-bar">
-        <div class="stat-item">
-            <div class="stat-value">{{ stats.total_cards }}</div>
-            <div class="stat-label">Cards</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value">{{ stats.main_class_distribution|length }}</div>
-            <div class="stat-label">Categories</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-value">{{ stats.top_tags|length }}</div>
-            <div class="stat-label">Tags</div>
-        </div>
-    </div>
-
     <main class="catalog-body">
-        <!-- Main Classes -->
+        <div class="breadcrumb">
+            <a href="{{ url_for('index') }}">Catalog</a>
+            <span class="breadcrumb-sep">&rsaquo;</span>
+            {% for num, label in ancestors %}
+            <a href="{{ url_for('browse', udc_number=num) }}">{{ label }}</a>
+            <span class="breadcrumb-sep">&rsaquo;</span>
+            {% endfor %}
+            <span>{{ label }}</span>
+        </div>
+
         <div class="section-header">
-            <h2 class="section-title">Main Classes</h2>
+            <h2 class="section-title">{{ udc_number }} — {{ label }}</h2>
+            <div class="section-divider"></div>
+        </div>
+
+        {% if children %}
+        <div class="section-header">
+            <h2 class="section-title">Subclassifications</h2>
             <div class="section-divider"></div>
         </div>
 
         <div class="shelf-grid">
-            {% for udc_num, label in main_classes.items() %}
-            <a href="{{ url_for('browse', udc_number=udc_num) }}" class="drawer">
-                <div class="drawer-label">{{ udc_num }}</div>
-                <div class="drawer-title">{{ label }}</div>
-                <div class="drawer-count">
-                    {{ stats.main_class_distribution.get(udc_num, 0) }} cards
-                </div>
+            {% for child_num, child_label in children %}
+            <a href="{{ url_for('browse', udc_number=child_num) }}" class="drawer">
+                <div class="drawer-label">{{ child_num }}</div>
+                <div class="drawer-title">{{ child_label }}</div>
             </a>
             {% endfor %}
         </div>
+        {% endif %}
 
-        <!-- Recent Cards -->
         <div class="section-header">
-            <h2 class="section-title">Recent Cards</h2>
+            <h2 class="section-title">Cards ({{ cards|length }})</h2>
             <div class="section-divider"></div>
         </div>
 
@@ -84,9 +81,8 @@
         {% else %}
         <div class="empty-state">
             <div class="empty-state-icon">&#128218;</div>
-            <div class="empty-state-text">The catalog is empty</div>
-            <div class="empty-state-hint">Ingest your first document to get started</div>
-            <a href="{{ url_for('ingest_page') }}" class="btn btn-primary" style="margin-top: 1rem;">Ingest Document</a>
+            <div class="empty-state-text">No cards in this classification</div>
+            <div class="empty-state-hint">Ingest documents to populate this section</div>
         </div>
         {% endif %}
     </main>

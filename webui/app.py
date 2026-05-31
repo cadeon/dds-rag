@@ -18,8 +18,9 @@ from UniversalDecimalInator.fs import (
     list_cards, search_cards, catalog_stats, read_card, write_card,
     cards_by_classification,
 )
-from UniversalDecimalInator.ingest import ingest_url
-from UniversalDecimalInator.models import Card
+from UniversalDecimalInator.ingest import ingest, ingest_url
+from UniversalDecimalInator.admin import delete_card, reclassify
+from UniversalDecimalInator.models import Card, UDCClassification
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.yaml")
 with open(CONFIG_PATH) as f:
@@ -48,9 +49,9 @@ def load_context():
 
 @app.route("/")
 def index():
-    tree = ref.get_tree()
     main_classes = {k: v for k, v in ref.main_classes.items()}
-    return render_template("index.html", tree=tree, main_classes=main_classes, stats=g.stats, ref=ref)
+    cards = list_cards(KB_PATH)[:12]
+    return render_template("index.html", main_classes=main_classes, stats=g.stats, cards=cards, ref=ref)
 
 
 @app.route("/browse/<udc_number>")
@@ -95,7 +96,12 @@ def card_edit(card_id):
         card.abstract = request.form.get("abstract", card.abstract)
         card.tags = [t.strip() for t in request.form.get("tags", "").split(",") if t.strip()]
         card.topics = [t.strip() for t in request.form.get("topics", "").split(",") if t.strip()]
-        write_card(card, KB_PATH, ref)
+        udc_number = request.form.get("udc_number", "").strip()
+        if udc_number and udc_number != card.classification.primary:
+            reclassify(KB_PATH, card_id, udc_number, ref)
+            card = read_card(KB_PATH, card_id)
+        else:
+            write_card(card, KB_PATH, ref)
         return redirect(url_for("card_detail", card_id=card_id))
     return render_template("card_edit.html", card=card)
 
@@ -104,19 +110,23 @@ def card_edit(card_id):
 def ingest_page():
     result = None
     if request.method == "POST":
-        source = request.form.get("source", "")
+        text = request.form.get("text", "").strip()
+        source = request.form.get("source", "").strip()
         if source.startswith(("http://", "https://")):
-            result = ingest_url(source, KB_PATH, ref)
+            card = ingest_url(source, KB_PATH, ref)
+            result = {"card": card}
+        elif text:
+            title = source or "Pasted Document"
+            card = ingest(title, text, KB_PATH, ref, source_url=source)
+            result = {"card": card}
         else:
-            result = {"error": "Provide a URL to ingest"}
+            result = {"error": "Provide either document text or a URL to ingest"}
     return render_template("ingest.html", result=result)
 
 
 @app.route("/card/<card_id>/delete", methods=["POST"])
 def card_delete(card_id):
-    card = read_card(KB_PATH, card_id)
-    if card and hasattr(card, 'path') and card.path:
-        card.path.unlink()
+    delete_card(KB_PATH, card_id)
     return redirect(url_for("index"))
 
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card - UniversalDecimalInator Card Catalog</title>
+    <title>{{ card.title or card.id }} - UniversalDecimalInator Card Catalog</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -26,7 +26,7 @@
         <div class="breadcrumb">
             <a href="{{ url_for('index') }}">Catalog</a>
             <span class="breadcrumb-sep">&rsaquo;</span>
-            <a href="{{ url_for('browse', udc_number=card.primary_classification) }}">{{ card.primary_classification }}</a>
+            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
             <span class="breadcrumb-sep">&rsaquo;</span>
             <span>{{ card.id[:8] }}</span>
         </div>
@@ -34,8 +34,7 @@
         <div class="card-detail">
             <div class="card-detail-header">
                 <div>
-                    <span class="card-detail-udc">{{ card.primary_classification | udc_label }}</span>
-                    <span class="card-format" style="margin-left: 0.5rem;">{{ card.format }}</span>
+                    <span class="card-detail-udc">{{ card.classification.primary }}</span>
                 </div>
                 <div class="card-detail-actions">
                     <a href="{{ url_for('card_edit', card_id=card.id) }}" class="btn btn-primary">Edit Card</a>
@@ -52,7 +51,7 @@
             </div>
             {% endif %}
 
-            {% if card.author and card.author != "Unknown" %}
+            {% if card.author %}
             <div class="card-field">
                 <div class="card-field-label">Author</div>
                 <div class="card-field-value">{{ card.author }}</div>
@@ -72,16 +71,16 @@
             </div>
 
             <div class="card-field">
-                <div class="card-field-label">UDC Classifications</div>
+                <div class="card-field-label">UDC Classification</div>
                 <div class="card-field-value">
-                    {% for cls in card.secondary_classifications %}
-                    <span class="card-udc" style="margin-right: 0.5rem;">
-                        {{ cls.number }} ({{ "%.0f"|format(cls.confidence * 100) }}%)
-                    </span>
+                    <span class="card-udc">{{ card.classification.primary }}</span>
+                    {% for sec in card.classification.secondary %}
+                    <span class="card-udc" style="margin-left: 0.5rem;">{{ sec }}</span>
                     {% endfor %}
                 </div>
             </div>
 
+            {% if card.tags %}
             <div class="card-field">
                 <div class="card-field-label">Tags</div>
                 <div class="card-field-value">
@@ -90,7 +89,9 @@
                     {% endfor %}
                 </div>
             </div>
+            {% endif %}
 
+            {% if card.topics %}
             <div class="card-field">
                 <div class="card-field-label">Topics</div>
                 <div class="card-field-value">
@@ -99,31 +100,12 @@
                     {% endfor %}
                 </div>
             </div>
-
-            <div class="card-field">
-                <div class="card-field-label">Audience</div>
-                <div class="card-field-value">{{ card.audience }}</div>
-            </div>
-
-            {% if card.date %}
-            <div class="card-field">
-                <div class="card-field-label">Date</div>
-                <div class="card-field-value">{{ card.date }}</div>
-            </div>
             {% endif %}
 
-            {% if document %}
+            {% if card.content %}
             <div class="card-field">
-                <div class="card-field-label">Document ({{ document.chunks|length }} chunks)</div>
-                <div class="document-text">
-                    {% for chunk in document.chunks %}
-{{ chunk.text }}
-{% if not loop.last %}
-
----
-{% endif %}
-                    {% endfor %}
-                </div>
+                <div class="card-field-label">Content</div>
+                <div class="document-text">{{ card.content }}</div>
             </div>
             {% endif %}
         </div>
