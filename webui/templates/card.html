@@ -26,7 +26,7 @@
         <div class="breadcrumb">
             <a href="{{ url_for('index') }}">Catalog</a>
             <span class="breadcrumb-sep">&rsaquo;</span>
-            <a href="{{ url_for('ddc_browse', ddc_number=card.ddc_parent) }}">{{ card.ddc_parent }}</a>
+            <a href="{{ url_for('ddc_browse', ddc_number=card.ddc_parent) }}">{{ card | primary_ddc }}</a>
             <span class="breadcrumb-sep">&rsaquo;</span>
             <span>{{ card.id[:8] }}</span>
         </div>
@@ -34,7 +34,7 @@
         <div class="card-detail">
             <div class="card-detail-header">
                 <div>
-                    <span class="card-detail-ddc">{{ card.ddc_parent }}</span>
+                    <span class="card-detail-ddc">{{ card | primary_ddc_label }}</span>
                     <span class="card-format" style="margin-left: 0.5rem;">{{ card.format }}</span>
                 </div>
                 <div class="card-detail-actions">
@@ -44,6 +44,27 @@
                     </form>
                 </div>
             </div>
+
+            {% if card.title %}
+            <div class="card-field">
+                <div class="card-field-label">Title</div>
+                <div class="card-field-value"><strong>{{ card.title }}</strong></div>
+            </div>
+            {% endif %}
+
+            {% if card.author and card.author != "Unknown" %}
+            <div class="card-field">
+                <div class="card-field-label">Author</div>
+                <div class="card-field-value">{{ card.author }}</div>
+            </div>
+            {% endif %}
+
+            {% if card.source_url %}
+            <div class="card-field">
+                <div class="card-field-label">Source</div>
+                <div class="card-field-value"><a href="{{ card.source_url }}" target="_blank" rel="noopener">{{ card.source_url }}</a></div>
+            </div>
+            {% endif %}
 
             <div class="card-field">
                 <div class="card-field-label">Abstract</div>

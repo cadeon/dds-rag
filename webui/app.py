@@ -35,6 +35,21 @@ with open(CONFIG_PATH) as f:
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max request size
 
+
+@app.template_filter("primary_ddc")
+def primary_ddc(card):
+    """Return the primary DDC number from a card's classifications."""
+    if card.ddc_classifications:
+        return card.ddc_classifications[0].number
+    return card.ddc_parent
+
+
+@app.template_filter("primary_ddc_label")
+def primary_ddc_label(card):
+    """Return the human-readable label for the card's primary DDC."""
+    num = primary_ddc(card)
+    return get_label(num)
+
 # Initialize storage (thread-safe: Storage opens/closes connections per method)
 db_path = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -108,10 +123,21 @@ def index():
     stats = catalog_stats(storage)
     cards = storage.list_cards(limit=20)
     tree = get_ddc_tree()
+
+    # Aggregate per-main-class counts in Python (Jinja2 set doesn't persist in loops)
+    ddc_dist = stats["ddc_distribution"]
+    main_class_counts: dict[int, int] = {m: 0 for m in MAIN_CLASSES}
+    for ddc_str, count in ddc_dist.items():
+        ddc_num = float(ddc_str)
+        main = int(ddc_num // 100) * 100
+        if main in main_class_counts:
+            main_class_counts[main] += count
+
     return render_template(
         "index.html",
         cards=cards,
-        stats=stats["ddc_distribution"],
+        stats=ddc_dist,
+        main_class_counts=main_class_counts,
         total_cards=stats["total_cards"],
         total_documents=stats["total_documents"],
         tree=tree,

@@ -20,12 +20,15 @@ def tmp_db():
         os.remove(path)
 
 
-def _make_card(ddc=500.0, abstract="Test abstract", tags=None, topics=None):
+def _make_card(ddc=500.0, abstract="Test abstract", tags=None, topics=None, title="Test Card", author="Test Author", source_url=""):
     return Card(
         id=str(uuid.uuid4()),
         ddc_classifications=[DDCClassification(number=ddc, confidence=0.9)],
         ddc_parent=ddc,
+        title=title,
         abstract=abstract,
+        author=author,
+        source_url=source_url,
         tags=tags or ["test"],
         topics=topics or ["topic"],
         audience="general",

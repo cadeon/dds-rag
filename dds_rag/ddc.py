@@ -370,10 +370,14 @@ def get_label(ddc_number: float) -> str:
     """Return the human-readable label for a DDC number."""
     if ddc_number in DDC_CLASSES:
         return DDC_CLASSES[ddc_number]
+    # Try integer parent (e.g. 628.06 -> 628)
+    parent = int(ddc_number)
+    if parent in DDC_CLASSES:
+        return f"{ddc_number} - {DDC_CLASSES[parent]}"
     # Try main class
     main = get_main_class(ddc_number)
     if main in MAIN_CLASSES:
-        return f"{int(ddc_number)} - {MAIN_CLASSES[main]}"
+        return f"{ddc_number} - {MAIN_CLASSES[main]}"
     return str(int(ddc_number))
 
 

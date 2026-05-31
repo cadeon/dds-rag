@@ -41,7 +41,10 @@ SYSTEM_PROMPT = """You are a document classification assistant for a digital car
 Analyze the provided document and return ONLY valid JSON with this exact structure:
 
 {
+  "title": "concise, descriptive title for the document",
   "abstract": "50-100 word summary of the document",
+  "author": "author name or organization, or 'Unknown' if not identifiable",
+  "source_url": "URL of the source if identifiable, or empty string",
   "ddc_classifications": [{"number": 516.37, "confidence": 0.9}],
   "tags": ["hyphenated", "lowercase", "keywords"],
   "topics": ["hierarchical", "subject", "areas"],
@@ -51,6 +54,9 @@ Analyze the provided document and return ONLY valid JSON with this exact structu
 }
 
 Rules:
+- Title should be concise and descriptive (10-30 words)
+- Extract author/organization from the text if present, otherwise "Unknown"
+- Extract source URL if the text contains one, otherwise empty string
 - Tags must be lowercase, hyphenated, no spaces
 - Assign the MOST SPECIFIC DDC number you can find
 - Include multiple DDC classifications if the document covers multiple topics
@@ -182,7 +188,10 @@ Return ONLY the JSON object:
             id=str(uuid.uuid4()),
             ddc_classifications=classifications,
             ddc_parent=parent,
+            title=data.get("title", ""),
             abstract=abstract,
+            author=data.get("author", "Unknown"),
+            source_url=data.get("source_url", ""),
             tags=data.get("tags", []),
             topics=data.get("topics", []),
             audience=data.get("audience", "general"),

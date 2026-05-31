@@ -51,7 +51,10 @@ class Storage:
                     id TEXT PRIMARY KEY,
                     ddc_classifications BLOB NOT NULL,
                     ddc_parent REAL NOT NULL,
+                    title TEXT NOT NULL DEFAULT '',
                     abstract TEXT NOT NULL,
+                    author TEXT NOT NULL DEFAULT '',
+                    source_url TEXT NOT NULL DEFAULT '',
                     tags TEXT NOT NULL,
                     topics TEXT NOT NULL,
                     audience TEXT NOT NULL,
@@ -61,7 +64,9 @@ class Storage:
                 );
 
                 CREATE VIRTUAL TABLE cards_fts USING fts5(
+                    title,
                     abstract,
+                    author,
                     tags,
                     topics,
                     content='cards',
@@ -90,14 +95,14 @@ class Storage:
                 CREATE INDEX IF NOT EXISTS idx_chunks_document_id ON chunks(document_id);
 
                 CREATE TRIGGER cards_ai AFTER INSERT ON cards BEGIN
-                    INSERT INTO cards_fts(rowid, abstract, tags, topics)
-                    VALUES (new.rowid, new.abstract, new.tags, new.topics);
+                    INSERT INTO cards_fts(rowid, title, abstract, author, tags, topics)
+                    VALUES (new.rowid, new.title, new.abstract, new.author, new.tags, new.topics);
                 END;
 
                 CREATE TRIGGER cards_au AFTER UPDATE ON cards BEGIN
                     DELETE FROM cards_fts WHERE rowid = old.rowid;
-                    INSERT INTO cards_fts(rowid, abstract, tags, topics)
-                    VALUES (new.rowid, new.abstract, new.tags, new.topics);
+                    INSERT INTO cards_fts(rowid, title, abstract, author, tags, topics)
+                    VALUES (new.rowid, new.title, new.abstract, new.author, new.tags, new.topics);
                 END;
 
                 CREATE TRIGGER cards_ad AFTER DELETE ON cards BEGIN
@@ -120,11 +125,11 @@ class Storage:
 
             conn.execute(
                 """INSERT OR REPLACE INTO cards
-                   (id, ddc_classifications, ddc_parent, abstract, tags, topics,
+                   (id, ddc_classifications, ddc_parent, title, abstract, author, source_url, tags, topics,
                     audience, format, date, embedding)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (card.id, ddc_blob, card.ddc_parent, card.abstract,
-                 tags_str, topics_str, card.audience, card.format,
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (card.id, ddc_blob, card.ddc_parent, card.title, card.abstract,
+                 card.author, card.source_url, tags_str, topics_str, card.audience, card.format,
                  card.date, emb_blob),
             )
             conn.commit()
@@ -243,12 +248,12 @@ class Storage:
         try:
             conn.execute("DELETE FROM cards_fts")
             rows = conn.execute(
-                "SELECT rowid, abstract, tags, topics FROM cards"
+                "SELECT rowid, title, abstract, author, tags, topics FROM cards"
             ).fetchall()
             for row in rows:
                 conn.execute(
-                    "INSERT INTO cards_fts(rowid, abstract, tags, topics) VALUES (?, ?, ?, ?)",
-                    (row["rowid"], row["abstract"], row["tags"], row["topics"]),
+                    "INSERT INTO cards_fts(rowid, title, abstract, author, tags, topics) VALUES (?, ?, ?, ?, ?, ?)",
+                    (row["rowid"], row["title"], row["abstract"], row["author"], row["tags"], row["topics"]),
                 )
             conn.commit()
             return len(rows)
@@ -443,7 +448,10 @@ class Storage:
             id=row["id"],
             ddc_classifications=[DDCClassification.from_dict(c) for c in classifications],
             ddc_parent=float(row["ddc_parent"]),
+            title=row["title"] if "title" in row.keys() else "",
             abstract=row["abstract"],
+            author=row["author"] if "author" in row.keys() else "",
+            source_url=row["source_url"] if "source_url" in row.keys() else "",
             tags=tags,
             topics=topics,
             audience=row["audience"],

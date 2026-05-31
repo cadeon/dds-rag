@@ -54,7 +54,10 @@ class Card:
     id: str
     ddc_classifications: list[DDCClassification]
     ddc_parent: float
+    title: str
     abstract: str
+    author: str
+    source_url: str
     tags: list[str]
     topics: list[str]
     audience: str
@@ -67,7 +70,10 @@ class Card:
             "id": self.id,
             "ddc_classifications": [c.to_dict() for c in self.ddc_classifications],
             "ddc_parent": self.ddc_parent,
+            "title": self.title,
             "abstract": self.abstract,
+            "author": self.author,
+            "source_url": self.source_url,
             "tags": self.tags,
             "topics": self.topics,
             "audience": self.audience,
@@ -82,7 +88,10 @@ class Card:
             id=d["id"],
             ddc_classifications=[DDCClassification.from_dict(c) for c in d["ddc_classifications"]],
             ddc_parent=float(d["ddc_parent"]),
+            title=d.get("title", ""),
             abstract=d["abstract"],
+            author=d.get("author", ""),
+            source_url=d.get("source_url", ""),
             tags=d["tags"],
             topics=d["topics"],
             audience=d["audience"],
