@@ -41,29 +41,35 @@ Respond with JSON:
 
 
 def _classify_with_llm(title: str, content: str, ref: ClassificationReference) -> dict:
-    from hermes_tools import terminal
+    import urllib.request
+    import urllib.error
 
     prompt = USER_PROMPT.format(title=title[:500], content=content[:3000])
     system = SYSTEM_PROMPT.format(reference=ref.to_prompt_reference()[:6000])
 
-    escaped_system = system.replace("'", "'\\''")
-    escaped_prompt = prompt.replace("'", "'\\''")
+    payload = json.dumps({
+        "model": "qwen3.6-hermes-27b",
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.1,
+        "max_tokens": 1000,
+    }).encode()
 
-    cmd = (
-        "curl -s http://172.30.250.101:8000/v1/chat/completions "
-        "-H 'Content-Type: application/json' "
-        "-d '{\"model\":\"qwen3.6-hermes-27b\","
-        "\"messages\":["
-        "{\"role\":\"system\",\"content\":\"" + escaped_system + "\"},"
-        "{\"role\":\"user\",\"content\":\"" + escaped_prompt + "\"}"
-        "],\"temperature\":0.1,\"max_tokens\":1000}'"
+    req = urllib.request.Request(
+        "http://172.30.250.101:8000/v1/chat/completions",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
     )
 
-    result = terminal(cmd, timeout=60)
-    if result["exit_code"] != 0:
-        raise RuntimeError(f"LLM call failed: {result['error']}")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read().decode())
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"LLM call failed: {e}")
 
-    data = json.loads(result["output"])
     response = data["choices"][0]["message"]["content"]
 
     json_match = re.search(r"\{.*\}", response, re.DOTALL)
