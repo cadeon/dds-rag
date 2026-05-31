@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Card - DDS-RAG Card Catalog</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="catalog-header">
+        <h1 class="catalog-title">DDS-RAG Card Catalog</h1>
+        <p class="catalog-subtitle">Edit Card</p>
+    </header>
+
+    <nav class="nav-bar">
+        <a href="{{ url_for('index') }}" class="nav-link">Catalog</a>
+        <a href="{{ url_for('ingest_page') }}" class="nav-link">Ingest</a>
+        <a href="{{ url_for('search') }}" class="nav-link">Search</a>
+        <form action="{{ url_for('search') }}" method="GET" class="search-bar">
+            <input type="text" name="q" class="search-input" placeholder="Search the catalog...">
+            <button type="submit" class="search-btn">Search</button>
+        </form>
+    </nav>
+
+    <main class="catalog-body">
+        <div class="breadcrumb">
+            <a href="{{ url_for('index') }}">Catalog</a>
+            <span class="breadcrumb-sep">&rsaquo;</span>
+            <a href="{{ url_for('card_detail', card_id=card.id) }}">Card {{ card.id[:8] }}</a>
+            <span class="breadcrumb-sep">&rsaquo;</span>
+            <span>Edit</span>
+        </div>
+
+        <div class="card-detail">
+            <form method="POST" action="{{ url_for('card_edit', card_id=card.id) }}">
+                <div class="form-group">
+                    <label class="form-label">DDC Classification</label>
+                    <input type="text" name="ddc_number" class="form-input" value="{{ card.ddc_parent }}" placeholder="e.g. 516.37">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Abstract</label>
+                    <textarea name="abstract" class="form-textarea" rows="6">{{ card.abstract }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tags (comma-separated)</label>
+                    <input type="text" name="tags" class="form-input" value="{{ card.tags|join(', ') }}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Topics (comma-separated)</label>
+                    <input type="text" name="topics" class="form-input" value="{{ card.topics|join(', ') }}">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <a href="{{ url_for('card_detail', card_id=card.id) }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="catalog-footer">
+        DDS-RAG Card Catalog &mdash; All classification at ingest, no LLM at query time
+    </footer>
+</body>
+</html>

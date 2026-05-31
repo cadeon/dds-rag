@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDS-RAG Card Catalog</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="catalog-header">
+        <h1 class="catalog-title">DDS-RAG Card Catalog</h1>
+        <p class="catalog-subtitle">Dewey Decimal System Retrieval Augmented Generation</p>
+    </header>
+
+    <nav class="nav-bar">
+        <a href="{{ url_for('index') }}" class="nav-link active">Catalog</a>
+        <a href="{{ url_for('ingest_page') }}" class="nav-link">Ingest</a>
+        <a href="{{ url_for('search') }}" class="nav-link">Search</a>
+        <form action="{{ url_for('search') }}" method="GET" class="search-bar">
+            <input type="text" name="q" class="search-input" placeholder="Search the catalog...">
+            <button type="submit" class="search-btn">Search</button>
+        </form>
+    </nav>
+
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-value">{{ total_cards }}</div>
+            <div class="stat-label">Cards</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ total_documents }}</div>
+            <div class="stat-label">Documents</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ stats|length }}</div>
+            <div class="stat-label">Shelves</div>
+        </div>
+    </div>
+
+    <main class="catalog-body">
+        <!-- Main Classes -->
+        <div class="section-header">
+            <h2 class="section-title">Main Classes</h2>
+            <div class="section-divider"></div>
+        </div>
+
+        <div class="shelf-grid">
+            {% for ddc_num, label in main_classes.items() %}
+            <a href="{{ url_for('ddc_browse', ddc_number=ddc_num) }}" class="drawer">
+                <div class="drawer-label">{{ "%03d" % ddc_num }}-{{ "%03d" % (ddc_num + 99) }}</div>
+                <div class="drawer-title">{{ label }}</div>
+                <div class="drawer-count">
+                    {% set count = 0 %}
+                    {% for d, c in stats.items() %}
+                        {% if d >= ddc_num and d < ddc_num + 100 %}
+                            {% set count = count + c %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ count }} cards
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Recent Cards -->
+        <div class="section-header">
+            <h2 class="section-title">Recent Cards</h2>
+            <div class="section-divider"></div>
+        </div>
+
+        {% if cards %}
+        <div class="card-grid">
+            {% for card in cards %}
+            <a href="{{ url_for('card_detail', card_id=card.id) }}" class="catalog-card">
+                <div class="card-header">
+                    <span class="card-ddc">{{ card.ddc_parent }}</span>
+                    <span class="card-format">{{ card.format }}</span>
+                </div>
+                <div class="card-abstract">{{ card.abstract[:150] }}{% if card.abstract|length > 150 %}...{% endif %}</div>
+                <div class="card-meta">
+                    {% for tag in card.tags[:3] %}
+                    <span class="card-tag">{{ tag }}</span>
+                    {% endfor %}
+                    {% if card.date %}
+                    <span class="card-date">{{ card.date[:10] }}</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">&#128218;</div>
+            <div class="empty-state-text">The catalog is empty</div>
+            <div class="empty-state-hint">Ingest your first document to get started</div>
+            <a href="{{ url_for('ingest_page') }}" class="btn btn-primary" style="margin-top: 1rem;">Ingest Document</a>
+        </div>
+        {% endif %}
+    </main>
+
+    <footer class="catalog-footer">
+        DDS-RAG Card Catalog &mdash; All classification at ingest, no LLM at query time
+    </footer>
+</body>
+</html>

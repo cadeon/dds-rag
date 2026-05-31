@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingest - DDS-RAG Card Catalog</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="catalog-header">
+        <h1 class="catalog-title">DDS-RAG Card Catalog</h1>
+        <p class="catalog-subtitle">Ingest New Document</p>
+    </header>
+
+    <nav class="nav-bar">
+        <a href="{{ url_for('index') }}" class="nav-link">Catalog</a>
+        <a href="{{ url_for('ingest_page') }}" class="nav-link active">Ingest</a>
+        <a href="{{ url_for('search') }}" class="nav-link">Search</a>
+        <form action="{{ url_for('search') }}" method="GET" class="search-bar">
+            <input type="text" name="q" class="search-input" placeholder="Search the catalog...">
+            <button type="submit" class="search-btn">Search</button>
+        </form>
+    </nav>
+
+    <main class="catalog-body">
+        <div class="section-header">
+            <h2 class="section-title">New Document</h2>
+            <div class="section-divider"></div>
+        </div>
+
+        <div class="ingest-form">
+            <form method="POST" action="{{ url_for('ingest_page') }}">
+                <div class="form-group">
+                    <label class="form-label">Document Text</label>
+                    <textarea name="text" class="form-textarea" rows="15" placeholder="Paste the full text of your document here..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Source (optional)</label>
+                    <input type="text" name="source" class="form-input" placeholder="e.g. filename.pdf, https://example.com/article">
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Ingest Document</button>
+                </div>
+            </form>
+        </div>
+
+        <div style="max-width: 800px; margin: 2rem auto 0;">
+            <div class="card-detail" style="background: var(--card-cream);">
+                <div class="card-field-label">What happens during ingest?</div>
+                <div class="card-field-value" style="font-size: 0.9rem; line-height: 1.8;">
+                    <ol style="padding-left: 1.5rem;">
+                        <li>An LLM reads your document and creates a catalog card with an abstract, tags, topics, and DDC classification</li>
+                        <li>The card abstract and document chunks are embedded as vectors</li>
+                        <li>Everything is stored in the SQLite catalog with FTS5 full-text search</li>
+                        <li>Your document is now searchable — no LLM calls needed at query time</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="catalog-footer">
+        DDS-RAG Card Catalog &mdash; All classification at ingest, no LLM at query time
+    </footer>
+</body>
+</html>
