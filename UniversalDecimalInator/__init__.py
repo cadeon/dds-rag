@@ -9,3 +9,37 @@ __version__ = "0.1.0"
 from UniversalDecimalInator.reference import ClassificationReference
 from UniversalDecimalInator.card_writer import CardWriter
 from UniversalDecimalInator.models import Card, UDCClassification
+from UniversalDecimalInator.fs import (
+    card_to_markdown,
+    markdown_to_card,
+    write_card,
+    read_card,
+    list_cards,
+    cards_by_classification,
+    search_cards,
+    catalog_stats,
+)
+from UniversalDecimalInator.ingest import ingest, ingest_url, ingest_batch
+from UniversalDecimalInator.admin import reclassify, delete_card
+from UniversalDecimalInator.fetcher import fetch_url
+
+__all__ = [
+    "ClassificationReference",
+    "CardWriter",
+    "Card",
+    "UDCClassification",
+    "card_to_markdown",
+    "markdown_to_card",
+    "write_card",
+    "read_card",
+    "list_cards",
+    "cards_by_classification",
+    "search_cards",
+    "catalog_stats",
+    "ingest",
+    "ingest_url",
+    "ingest_batch",
+    "reclassify",
+    "delete_card",
+    "fetch_url",
+]

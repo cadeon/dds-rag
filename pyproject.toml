@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "UniversalDecimalInator"
+version = "0.1.0"
+description = "Universal Decimal Classification-based document catalog system"
+requires-python = ">=3.10"
+dependencies = [
+    "Flask>=3.0",
+    "requests>=2.31",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.setuptools.packages.find]
+include = ["UniversalDecimalInator*"]
