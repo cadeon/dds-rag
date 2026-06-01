@@ -77,6 +77,12 @@ def _is_noise_image(src: str, alt: str, img_tag) -> bool:
                         return True
                 except ValueError:
                     pass
+    # Skip Wikimedia thumbnails that are tiny (20px-40px) — infobox decorations
+    wm_match = re.search(r'/(\d+)px-', src)
+    if wm_match:
+        thumb_size = int(wm_match.group(1))
+        if thumb_size <= 40:
+            return True
     return False
 
 
