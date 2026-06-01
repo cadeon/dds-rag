@@ -694,10 +694,10 @@ body {
 
 .tag-list .card-tag {
     font-size: 0.8rem;
-    background: var(--wood-pale);
-    color: var(--ink-black);
-    border: 1px solid var(--wood-light);
-    text-transform: none;
+    background: var(--accent-green);
+    color: white;
+    border: none;
+    text-transform: lowercase;
     text-decoration: none;
     transition: all 0.2s;
 }
