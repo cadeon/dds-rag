@@ -109,6 +109,7 @@ class ClassificationReference:
         main = self.get_main_class(number)
         if main in self.main_classes:
             ancestors.append((main, self.main_classes[main]))
+        ancestors.reverse()
         return ancestors
 
     def parse_compound(self, number: str) -> list[str]:

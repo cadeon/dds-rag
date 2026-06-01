@@ -8,7 +8,7 @@
 </div>
 
 <div class="shelf-grid">
-    {% for num, label in main_classes.items() %}
+    {% for num, label in main_classes.items() if stats.main_class_distribution.get(num, 0) > 0 %}
     <a href="{{ url_for('browse', udc_number=num) }}" class="drawer">
         <div class="drawer-header">
             <span class="drawer-tag" title="{{ label }}">{{ num }}</span>
