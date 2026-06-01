@@ -30,8 +30,9 @@ def reclassify(
 
 def delete_card(kb_path: str | Path, card_id: str) -> bool:
     kb = Path(kb_path)
-    for md in kb.rglob("*.md"):
-        if md.name == "README.md" or "/artifacts/" in str(md) or "/sources/" in str(md):
+    content = kb / "content"
+    for md in content.rglob("*.md"):
+        if md.name == "README.md":
             continue
         text = md.read_text()
         if not text.startswith("---"):
