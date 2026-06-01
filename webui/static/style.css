@@ -59,6 +59,18 @@ body {
     position: relative;
 }
 
+.catalog-github {
+    position: absolute;
+    top: 0.75rem;
+    right: 1.5rem;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.catalog-github:hover {
+    opacity: 1;
+}
+
 .catalog-header::after {
     content: '';
     position: absolute;
