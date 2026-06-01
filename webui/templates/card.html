@@ -90,11 +90,6 @@
                         <span class="artifact-meta">{{ src.content_type }}</span>
                         {% endif %}
                     </div>
-                    {% if src.artifacts %}
-                    <div class="artifact-files">
-                        {{ src.artifacts | join(', ') }}
-                    </div>
-                    {% endif %}
                     {% endfor %}
                     {% if card.source_url and not card.sources %}
                     <div class="artifact-item">

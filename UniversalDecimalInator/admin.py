@@ -31,7 +31,7 @@ def reclassify(
 def delete_card(kb_path: str | Path, card_id: str) -> bool:
     kb = Path(kb_path)
     for md in kb.rglob("*.md"):
-        if md.name == "README.md" or "/sources/" in str(md):
+        if md.name == "README.md" or "/artifacts/" in str(md) or "/sources/" in str(md):
             continue
         text = md.read_text()
         if not text.startswith("---"):
@@ -42,8 +42,11 @@ def delete_card(kb_path: str | Path, card_id: str) -> bool:
         fm = yaml.safe_load(parts[1])
         if fm.get("id") == card_id:
             md.unlink()
-            src = kb / "sources" / f"{card_id}.txt"
-            if src.exists():
-                src.unlink()
+            # Clean up artifact directory
+            import shutil
+            for art_dir in kb.rglob(card_id):
+                if art_dir.is_dir() and "/artifacts/" in str(art_dir):
+                    shutil.rmtree(art_dir)
+                    break
             return True
     return False

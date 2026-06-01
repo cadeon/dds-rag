@@ -134,12 +134,11 @@ class TestCardToMarkdown:
     def test_multiple_sources(self, sample_card):
         sample_card.sources = [
             Source(type="url", uri="https://example.com/page"),
-            Source(type="file", uri="local-report.pdf", content_type="application/pdf", artifacts=["report.pdf"])
+            Source(type="file", uri="local-report.pdf", content_type="application/pdf")
         ]
         md = card_to_markdown(sample_card)
         assert "url: https://example.com/page" in md
         assert "file: local-report.pdf" in md
-        assert "artifacts: report.pdf" in md
 
     def test_source_url_not_in_new_frontmatter(self, sample_card):
         """New cards should not have source_url in frontmatter, only sources."""
@@ -189,14 +188,13 @@ class TestMarkdownToCard:
 
     def test_new_sources_parsed(self):
         """New cards with sources list should parse correctly."""
-        new_md = "---\nid: new-card\ntitle: New Format\nabstract: New style card\nclassification:\n  primary: '004.738.5'\n  secondary: []\ntags: []\ntopics: []\nsources:\n  - type: url\n    uri: 'https://example.com/new'\n    content_type: text/html\n    artifacts:\n      - page.html\nauthor: ''\nformat: url_fetch\nudc_label: Computer & AI\nversion: '1'\ncreated_at: '2026-01-01T00:00:00'\nupdated_at: '2026-01-01T00:00:00'\n---\n\n## Card: New Format\n\nNew style card\n\n## Classification\nPrimary: 004.738.5\n\n## Content\n\nThis is the actual content.\n"
+        new_md = "---\nid: new-card\ntitle: New Format\nabstract: New style card\nclassification:\n  primary: '004.738.5'\n  secondary: []\ntags: []\ntopics: []\nsources:\n  - type: url\n    uri: 'https://example.com/new'\n    content_type: text/html\nauthor: ''\nformat: url_fetch\nudc_label: Computer & AI\nversion: '1'\ncreated_at: '2026-01-01T00:00:00'\nupdated_at: '2026-01-01T00:00:00'\n---\n\n## Card: New Format\n\nNew style card\n\n## Classification\nPrimary: 004.738.5\n\n## Content\n\nThis is the actual content.\n"
         card = markdown_to_card(new_md)
         assert card.id == "new-card"
         assert len(card.sources) == 1
         assert card.sources[0].type == "url"
         assert card.sources[0].uri == "https://example.com/new"
         assert card.sources[0].content_type == "text/html"
-        assert card.sources[0].artifacts == ["page.html"]
         assert card.format == "url_fetch"
         assert card.udc_label == "Computer & AI"
         assert card.version == "1"
@@ -211,21 +209,15 @@ class TestWriteCard:
 
     def test_path_structure(self, sample_card, kb, ref):
         path = write_card(sample_card, kb, ref)
-        parts = str(path.relative_to(kb).with_suffix("")).split("/")
-        assert parts[0] == "0"  # main class
-        assert parts[1] == "004"  # subdivision
-
-    def test_creates_sources(self, sample_card, kb, ref):
-        sample_card.source_url = "https://example.com/ml"
-        write_card(sample_card, kb, ref)
-        src = Path(kb) / "sources" / "test-ml.txt"
-        assert src.exists()
-        assert src.read_text() == "https://example.com/ml"
+        parts = str(path.relative_to(kb)).split("/")
+        assert parts[0] == "0"           # main class
+        assert parts[1] == "004"         # subdivision
+        assert parts[2] == "004.738.5"   # full classification
+        assert parts[3] == "test-ml.md"  # card uid file
 
     def test_creates_artifact_dir(self, sample_card, kb, ref):
-        sample_card.sources = [Source(type="url", uri="https://example.com/ml")]
         write_card(sample_card, kb, ref)
-        artifact_dir = Path(kb) / "artifacts" / "test-ml"
+        artifact_dir = Path(kb) / "artifacts" / "0" / "004" / "004.738.5" / "test-ml"
         assert artifact_dir.is_dir()
 
 

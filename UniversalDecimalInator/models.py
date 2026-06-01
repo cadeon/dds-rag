@@ -53,7 +53,8 @@ class Source:
     type: str = "url"  # url, file, api, other
     uri: str = ""  # URL or file path
     content_type: str = ""  # MIME type (text/html, application/pdf, etc.)
-    artifacts: list[str] = field(default_factory=list)  # Relative paths to artifact files
+    # Note: artifact files are stored in artifacts/<classification>/<card_id>/
+    # and are not tracked here -- the source uri points to provenance.
 
     def to_dict(self) -> dict:
         d = {
@@ -62,8 +63,6 @@ class Source:
         }
         if self.content_type:
             d["content_type"] = self.content_type
-        if self.artifacts:
-            d["artifacts"] = self.artifacts
         return d
 
     @classmethod
@@ -72,7 +71,6 @@ class Source:
             type=d.get("type", "url"),
             uri=d.get("uri", d.get("url", "")),
             content_type=d.get("content_type", ""),
-            artifacts=d.get("artifacts", []),
         )
 
 

@@ -81,8 +81,6 @@ def card_to_markdown(card: Card) -> str:
                 src_lines.append(f"- {src.type}: {src.uri}")
                 if src.content_type:
                     src_lines.append(f"  content_type: {src.content_type}")
-                if src.artifacts:
-                    src_lines.append(f"  artifacts: {', '.join(src.artifacts)}")
         if card.author:
             src_lines.append(f"Author: {card.author}")
         body_parts.append("\n".join(src_lines))
@@ -121,21 +119,29 @@ def markdown_to_card(text: str) -> Card:
 
 
 def write_card(card: Card, kb_path: str | Path, ref: ClassificationReference) -> Path:
+    """Write a card to the knowledge base.
+
+    Layout:
+      kb/<classification_path>/<card_id>.md           -- card file
+      kb/artifacts/<classification_path>/<card_id>/   -- artifact files for this card
+
+    Card files are named by UID, not classification, so multiple cards
+    can share the same classification. Artifacts mirror the classification
+    directory structure with a per-card subdirectory.
+    """
     kb = Path(kb_path)
-    path = ref.udc_to_path(card.classification.primary)
-    card_path = kb / f"{path}.md"
-    card_path.parent.mkdir(parents=True, exist_ok=True)
+    cls_path = ref.udc_to_path(card.classification.primary)
+
+    # Card file: <kb>/<classification_path>/<card_id>.md
+    card_dir = kb / cls_path
+    card_dir.mkdir(parents=True, exist_ok=True)
+    card_path = card_dir / f"{card.id}.md"
     card_path.write_text(card_to_markdown(card))
-    # Write source files for backward compat
-    if card.source_url:
-        sources = kb / "sources"
-        sources.mkdir(exist_ok=True)
-        src_file = sources / f"{card.id}.txt"
-        src_file.write_text(card.source_url)
-    # Write artifact directory if sources have artifacts
-    if card.sources:
-        artifact_dir = kb / "artifacts" / card.id
-        artifact_dir.mkdir(parents=True, exist_ok=True)
+
+    # Artifact directory: <kb>/artifacts/<classification_path>/<card_id>/
+    artifact_dir = kb / "artifacts" / cls_path / card.id
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+
     return card_path
 
 
