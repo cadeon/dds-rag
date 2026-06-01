@@ -20,6 +20,30 @@
 </div>
 {% endif %}
 
+{% if result and result.wikipedia_results %}
+<div style="max-width: 800px; margin: 0 auto 1rem; padding: 1rem; background: var(--card-cream); border-radius: 4px;">
+    <h3 style="margin: 0 0 0.5rem;">Wikipedia Random Ingest Results</h3>
+    {% set success = result.wikipedia_results | selectattr('card') | list %}
+    {% set failed = result.wikipedia_results | rejectattr('card') | list %}
+    <p style="margin: 0 0 0.5rem;">
+        <strong>{{ success | length }}</strong> succeeded, <strong>{{ failed | length }}</strong> failed out of {{ result.wikipedia_results | length }} articles.
+    </p>
+    {% for r in result.wikipedia_results %}
+    <div style="padding: 0.25rem 0; border-bottom: 1px solid var(--border-cream);">
+        {% if r.card %}
+        <span style="color: var(--accent-green);">✓</span>
+        <strong>{{ r.title }}</strong>
+        → <a href="{{ url_for('card_detail', card_id=r.card.id) }}">View Card</a>
+        {% else %}
+        <span style="color: var(--accent-red);">✗</span>
+        <strong>{{ r.title }}</strong>
+        — {{ r.error }}
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <div class="ingest-form">
     <form method="POST" action="{{ url_for('ingest_page') }}">
         <div class="form-group">
@@ -36,6 +60,13 @@
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
             <button type="submit" class="btn btn-primary">Ingest Document</button>
         </div>
+    </form>
+</div>
+
+<div style="max-width: 800px; margin: 1.5rem auto 0;">
+    <form method="POST" action="{{ url_for('ingest_wikipedia_random_page') }}" style="display: flex; gap: 0.5rem; align-items: center;">
+        <input type="number" name="count" value="10" min="1" max="50" class="form-input" style="width: 80px; flex-shrink: 0;">
+        <button type="submit" class="btn btn-primary">Ingest 10 Random Wikipedia Articles</button>
     </form>
 </div>
 

@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 
+import requests
 import yaml
 from flask import Flask, render_template, request, redirect, url_for, g
 
@@ -171,6 +172,42 @@ def ingest_page():
             result = {"error": "Provide either document text or a URL to ingest"}
         invalidate_stats()
     return render_template("ingest.html", result=result, active_nav="ingest")
+
+
+@app.route("/ingest/wikipedia_random", methods=["POST"])
+def ingest_wikipedia_random_page():
+    count = 10
+    raw = request.form.get("count", "").strip()
+    if raw:
+        try:
+            count = max(1, min(int(raw), 50))
+        except ValueError:
+            pass
+    # Fetch random Wikipedia article titles via the API
+    wp_resp = requests.get(
+        "https://en.wikipedia.org/w/api.php",
+        params={"action": "query", "list": "random", "rnnamespace": 0, "rnlimit": str(count), "format": "json"},
+        headers={"User-Agent": "UniversalDecimalInator/1.0"},
+        timeout=30,
+    )
+    wp_resp.raise_for_status()
+    random_pages = wp_resp.json().get("query", {}).get("random", [])
+    results = []
+    for page in random_pages:
+        title = page["title"]
+        url = f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"
+        try:
+            card = ingest_url(url, KB_PATH, ref)
+            results.append({"card": card, "error": None, "title": title})
+        except Exception as e:
+            logger.error("Failed to ingest Wikipedia article %s: %s", title, e)
+            results.append({"card": None, "error": str(e), "title": title})
+    invalidate_stats()
+    return render_template(
+        "ingest.html",
+        result={"wikipedia_results": results},
+        active_nav="ingest",
+    )
 
 
 @app.route("/card/<card_id>/delete", methods=["POST"])
