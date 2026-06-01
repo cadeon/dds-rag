@@ -46,6 +46,7 @@
 
         <div class="shelf-grid">
             {% for udc_num, label in main_classes.items() %}
+            {% if stats.main_class_distribution.get(udc_num, 0) > 0 %}
             <a href="{{ url_for('browse', udc_number=udc_num) }}" class="drawer">
                 <div class="drawer-label">{{ udc_num }}</div>
                 <div class="drawer-title">{{ label }}</div>
@@ -53,6 +54,7 @@
                     {{ stats.main_class_distribution.get(udc_num, 0) }} cards
                 </div>
             </a>
+            {% endif %}
             {% endfor %}
         </div>
 
