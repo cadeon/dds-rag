@@ -31,6 +31,36 @@ def _try_readability(html: str) -> str | None:
         return None
 
 
+def _is_noise_image(src: str, alt: str, img_tag) -> bool:
+    """Filter out tracking pixels, icons, and other non-content images."""
+    # Skip data URIs (usually icons/tracking)
+    if src.startswith("data:"):
+        return True
+    # Skip known noise patterns in URLs
+    noise_patterns = [
+        "CentralAutoLogin", "1x1", "pixel", "tracking", "beacon",
+        "favicon", "gravatar",
+        "analytics", "google-analytics",
+    ]
+    src_lower = src.lower()
+    if any(p in src_lower for p in noise_patterns):
+        return True
+    # Skip images with very short alt text that look like UI elements
+    if alt and len(alt) <= 3 and alt.isalpha():
+        return True
+    # Skip images with width/height attributes indicating tiny images
+    if img_tag:
+        for attr in ["width", "height"]:
+            val = img_tag.get(attr, "")
+            if isinstance(val, str):
+                try:
+                    if int(val) <= 5:
+                        return True
+                except ValueError:
+                    pass
+    return False
+
+
 def extract_html(html: str, url: str = "") -> tuple[str, list[dict]]:
     """Extract readable text and image info from HTML content.
 
@@ -65,11 +95,13 @@ def extract_html(html: str, url: str = "") -> tuple[str, list[dict]]:
                 if isinstance(alt, list):
                     alt = alt[0] if alt else ""
                 alt = str(alt).strip()
-                images.append({
-                    "src": src,
-                    "alt": alt,
-                    "content_type": _guess_image_type(src),
-                })
+                # Skip noise images
+                if not _is_noise_image(src, alt, img):
+                    images.append({
+                        "src": src,
+                        "alt": alt,
+                        "content_type": _guess_image_type(src),
+                    })
             alt = img.get("alt", "")
             if isinstance(alt, list):
                 alt = alt[0] if alt else ""
@@ -109,11 +141,12 @@ def extract_html(html: str, url: str = "") -> tuple[str, list[dict]]:
             if isinstance(alt, list):
                 alt = alt[0] if alt else ""
             alt = str(alt).strip()
-            images.append({
-                "src": src,
-                "alt": alt,
-                "content_type": _guess_image_type(src),
-            })
+            if not _is_noise_image(src, alt, img):
+                images.append({
+                    "src": src,
+                    "alt": alt,
+                    "content_type": _guess_image_type(src),
+                })
         alt = img.get("alt", "")
         if isinstance(alt, list):
             alt = alt[0] if alt else ""

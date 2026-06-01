@@ -113,3 +113,29 @@ class TestGuessImageType:
 
     def test_unknown(self):
         assert _guess_image_type("photo.xyz") == "image/jpeg"
+
+
+class TestNoiseFilter:
+    def test_central_autologin_filtered(self):
+        from UniversalDecimalInator.fetcher import _is_noise_image
+        assert _is_noise_image("https://en.wikipedia.org/wiki/Special:CentralAutoLogin/1x1.png", "", None)
+
+    def test_tracking_pixel_filtered(self):
+        from UniversalDecimalInator.fetcher import _is_noise_image
+        assert _is_noise_image("https://example.com/tracking/pixel.gif", "", None)
+
+    def test_data_uri_filtered(self):
+        from UniversalDecimalInator.fetcher import _is_noise_image
+        assert _is_noise_image("data:image/png;base64,abc", "", None)
+
+    def test_normal_image_not_filtered(self):
+        from UniversalDecimalInator.fetcher import _is_noise_image
+        assert not _is_noise_image("https://upload.wikimedia.org/wikipedia/commons/thumb/abc/Photo.jpg", "A nice photo", None)
+
+    def test_favicon_filtered(self):
+        from UniversalDecimalInator.fetcher import _is_noise_image
+        assert _is_noise_image("https://example.com/favicon.ico", "", None)
+
+    def test_avatar_filtered(self):
+        from UniversalDecimalInator.fetcher import _is_noise_image
+        assert _is_noise_image("https://gravatar.com/avatar/abc123", "", None)

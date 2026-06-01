@@ -2,3 +2,10 @@ card_writer:
   model: "qwen3.6-hermes-27b"
   endpoint: "http://172.30.250.101:8000/v1"
   temperature: 0.1
+
+# VLM for image descriptions during ingest (optional)
+# Uncomment and configure to enable automatic image descriptions
+# vlm:
+#   endpoint: "https://your-vision-model/v1"
+#   model: "your-vision-model-name"
+#   api_key: "optional-api-key"
