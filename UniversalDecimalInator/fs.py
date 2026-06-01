@@ -14,6 +14,14 @@ from UniversalDecimalInator.reference import ClassificationReference
 logger = logging.getLogger(__name__)
 
 
+def _is_content_image(url: str) -> bool:
+    """Check if an image URL is likely a content image rather than noise."""
+    # Filter out math equation renders from Wikimedia
+    if "wikimedia.org/api/rest_v1/media/math/render" in url:
+        return False
+    return True
+
+
 def _download_image(url: str, dest_dir: Path, index: int) -> tuple[Path | None, str]:
     """Download an image to the artifact directory. Returns (path, filename) or (None, '')."""
     import mimetypes
@@ -22,9 +30,16 @@ def _download_image(url: str, dest_dir: Path, index: int) -> tuple[Path | None, 
     dest = dest_dir / filename
     try:
         import requests
-        resp = requests.get(url, timeout=30, headers={"User-Agent": "UniversalDecimalInator/1.0"})
+        resp = requests.get(url, timeout=60, headers={
+            "User-Agent": "UniversalDecimalInator/1.0 (+https://github.com/cadeon/dds-rag)"
+        })
         resp.raise_for_status()
-        dest.write_bytes(resp.content)
+        content = resp.content
+        # Skip very small files (likely errors or tracking pixels)
+        if len(content) < 1024:
+            logger.debug("Skipping tiny image %s (%d bytes)", url, len(content))
+            return None, ""
+        dest.write_bytes(content)
         return dest, filename
     except Exception as e:
         logger.debug("Failed to download image %s: %s", url, e)
@@ -44,6 +59,8 @@ def _describe_image_vlm(image_path: Path) -> str:
     import json
     import os
     import yaml
+    import base64
+    import requests
 
     config_path = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -59,11 +76,9 @@ def _describe_image_vlm(image_path: Path) -> str:
     if not vlm_cfg.get("endpoint"):
         return ""
 
-    import base64
-    import urllib.request
-
     endpoint = vlm_cfg["endpoint"]
     model = vlm_cfg.get("model", "")
+    api_key = vlm_cfg.get("api_key", "")
 
     try:
         with open(image_path, "rb") as f:
@@ -82,20 +97,24 @@ def _describe_image_vlm(image_path: Path) -> str:
             ],
             "max_tokens": 100,
         }
-        req = urllib.request.Request(
+
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        resp = requests.post(
             f"{endpoint}/chat/completions",
-            data=json.dumps(payload).encode(),
-            headers={"Content-Type": "application/json"},
-            method="POST",
+            json=payload,
+            headers=headers,
+            timeout=60,
         )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode())
+        resp.raise_for_status()
+        data = resp.json()
         return data["choices"][0]["message"]["content"].strip()
 
     except Exception as e:
         logger.debug("VLM description failed for %s: %s", image_path, e)
         return ""
-
 
 def _guess_mime_from_url(url: str) -> str:
     """Guess MIME type from URL extension."""
@@ -181,9 +200,10 @@ def card_to_markdown(card: Card) -> str:
         body_parts.append("\n".join(src_lines))
 
     # Artifacts section — associated files with descriptions for RAG context
-    if card.artifacts:
+    valid_artifacts = [art for art in card.artifacts if art.filename]
+    if valid_artifacts:
         art_lines = ["## Artifacts"]
-        for art in card.artifacts:
+        for art in valid_artifacts:
             art_lines.append(f"- **{art.filename}** ({art.mime_type})")
             if art.description:
                 art_lines.append(f"  {art.description}")

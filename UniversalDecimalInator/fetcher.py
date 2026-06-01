@@ -36,6 +36,9 @@ def _is_noise_image(src: str, alt: str, img_tag) -> bool:
     # Skip data URIs (usually icons/tracking)
     if src.startswith("data:"):
         return True
+    # Skip math equation renders from Wikimedia
+    if "wikimedia.org/api/rest_v1/media/math/render" in src:
+        return True
     # Skip known noise patterns in URLs
     noise_patterns = [
         "CentralAutoLogin", "1x1", "pixel", "tracking", "beacon",
