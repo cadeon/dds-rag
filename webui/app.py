@@ -80,14 +80,20 @@ def index():
 def browse(udc_number):
     cards = cards_by_classification(KB_PATH, udc_number, ref)
     label = ref.get_label(udc_number)
-    children = ref.get_children(udc_number)
+    all_children = ref.get_children(udc_number)
+    # Only show children that actually have cards
+    children_with_cards = []
+    for child_num, child_label in all_children:
+        child_cards = cards_by_classification(KB_PATH, child_num, ref)
+        if child_cards:
+            children_with_cards.append((child_num, child_label, len(child_cards)))
     ancestors = ref.get_ancestors(udc_number)
     return render_template(
         "browse.html",
         udc_number=udc_number,
         label=label,
         cards=cards,
-        children=children,
+        children=children_with_cards,
         ancestors=ancestors,
     )
 

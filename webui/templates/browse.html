@@ -45,10 +45,11 @@
         </div>
 
         <div class="shelf-grid">
-            {% for child_num, child_label in children %}
+            {% for child_num, child_label, child_count in children %}
             <a href="{{ url_for('browse', udc_number=child_num) }}" class="drawer">
                 <div class="drawer-label">{{ child_num }}</div>
                 <div class="drawer-title">{{ child_label }}</div>
+                <div class="drawer-count">{{ child_count }} card{{ 's' if child_count != 1 }}</div>
             </a>
             {% endfor %}
         </div>
