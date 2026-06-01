@@ -49,9 +49,9 @@ def _is_noise_image(src: str, alt: str, img_tag) -> bool:
     # Skip math equation renders from Wikimedia
     if "wikimedia.org/api/rest_v1/media/math/render" in src:
         return True
-    # Skip Wikipedia infobox noise: red pog markers, flags, coat of arms
+    # Skip Wikipedia infobox noise: red pog markers
     wp_noise = [
-        "Red_pog.svg", "Flag_of_", "Coat_of_arms", "Arms_of_",
+        "Red_pog.svg",
     ]
     if any(p in src for p in wp_noise):
         return True
