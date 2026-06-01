@@ -81,22 +81,22 @@ body {
     background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
 }
 
-.catalog-title {
-    font-family: var(--font-serif);
-    font-size: 2rem;
-    color: var(--card-cream);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    margin-bottom: 0.25rem;
+.catalog-home {
+    text-decoration: none;
+    display: block;
 }
 
-.catalog-subtitle {
+.catalog-title {
     font-family: 'Courier New', 'Lucida Console', monospace;
-    font-size: 0.95rem;
-    color: var(--wood-pale);
-    letter-spacing: 0.15em;
-    opacity: 0.8;
+    font-size: 1.6rem;
+    color: var(--card-cream);
+    letter-spacing: 0.1em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-bottom: 0;
+}
+
+.catalog-home:hover .catalog-title {
+    opacity: 0.85;
 }
 
 /* Navigation */
