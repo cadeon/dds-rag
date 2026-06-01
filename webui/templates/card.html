@@ -46,22 +46,43 @@
     </div>
     {% endif %}
 
-    {% if card.sources or card.source_url %}
+    {% if card.artifacts %}
     <div class="card-field">
         <div class="card-field-label">Artifacts</div>
         <div class="card-field-value">
+            {% for art in card.artifacts %}
+            <div class="artifact-item">
+                {% if art.filename %}
+                <a href="/artifact/{{ card.id }}/{{ art.filename }}" target="_blank">
+                    <img src="/artifact/{{ card.id }}/{{ art.filename }}" alt="{{ art.description }}" style="max-width: 250px; max-height: 250px;">
+                </a>
+                {% else %}
+                <span class="artifact-type">{{ art.filename or '(no file)' }}</span>
+                {% endif %}
+                {% if art.description %}
+                <div class="artifact-desc">{{ art.description }}</div>
+                {% endif %}
+                {% if art.uri %}
+                <span class="artifact-meta"><a href="{{ art.uri }}" target="_blank" rel="noopener">source</a></span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if card.sources or card.source_url %}
+    <div class="card-field">
+        <div class="card-field-label">Source</div>
+        <div class="card-field-value">
             {% for src in card.sources %}
             <div class="artifact-item">
-                <span class="artifact-type">{{ src.type }}</span>
                 {% if src.uri %}
                     {% if src.type == 'url' %}
                     <a href="{{ src.uri }}" target="_blank" rel="noopener">{{ src.uri }}</a>
                     {% else %}
                     {{ src.uri }}
                     {% endif %}
-                {% endif %}
-                {% if src.content_type %}
-                <span class="artifact-meta">{{ src.content_type }}</span>
                 {% endif %}
             </div>
             {% endfor %}

@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+from pathlib import Path
 
 import requests
 import yaml
@@ -215,6 +216,22 @@ def card_delete(card_id):
     delete_card(KB_PATH, card_id)
     invalidate_stats()
     return redirect(url_for("index"))
+
+
+@app.route("/artifact/<card_id>/<path:filename>")
+def serve_artifact(card_id, filename):
+    """Serve artifact files from the knowledge base."""
+    from flask import send_file
+    import mimetypes
+    kb = Path(KB_PATH) / "artifacts"
+    # Find the artifact file by searching through classification paths
+    for art_dir in kb.rglob(f"{card_id}"):
+        if art_dir.is_dir():
+            filepath = art_dir / filename
+            if filepath.exists():
+                mime = mimetypes.guess_type(str(filepath))[0] or "application/octet-stream"
+                return send_file(str(filepath), mimetype=mime)
+    return "Artifact not found", 404
 
 
 if __name__ == "__main__":
