@@ -2,18 +2,21 @@
 <div class="catalog-card">
     <a href="{{ url_for('card_detail', card_id=card.id) }}" class="catalog-card-link"></a>
     <div class="card-header">
-        <span class="card-udc">
-            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+        <a href="{{ url_for('browse', udc_number=card.classification.primary) }}" class="card-udc no-overlay">
+            <span class="card-udc-number">{{ card.classification.primary }}</span>
             {% if ref %}<span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>{% endif %}
-        </span>
+        </a>
     </div>
     {% if card.title %}
-    <div class="card-title"><a href="{{ url_for('card_detail', card_id=card.id) }}">{{ card.title }}</a></div>
+    <div class="card-title">{{ card.title }}</div>
     {% endif %}
     <div class="card-abstract">{{ card.abstract[:abstract_limit] }}{% if card.abstract|length > abstract_limit %}...{% endif %}</div>
     <div class="card-meta">
         {% for tag in card.tags[:tag_limit] %}
-        <span class="card-tag">{{ tag }}</span>
+        <a href="{{ url_for('search', q=tag) }}" class="card-tag no-overlay">{{ tag }}</a>
+        {% endfor %}
+        {% for topic in (card.topics or [])[:tag_limit] %}
+        <a href="{{ url_for('search', q=topic) }}" class="card-topic no-overlay">{{ topic }}</a>
         {% endfor %}
     </div>
 </div>

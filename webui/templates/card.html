@@ -15,7 +15,7 @@
     <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
     {% endif %}
     <span class="breadcrumb-sep">&rsaquo;</span>
-    <span>{{ card.id }}</span>
+    <span class="breadcrumb-current">{{ card.title or card.id }}</span>
 </div>
 
 <div class="card-detail">
@@ -23,14 +23,6 @@
         <div class="card-header-left">
             <h2 class="card-title">{{ card.title or card.id }}</h2>
             <div class="card-meta">
-                {% if card.classification.primary and ref %}
-                <span class="card-udc">
-                    <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
-                    <span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>
-                </span>
-                {% else %}
-                <span class="card-udc">{{ card.classification.primary }}</span>
-                {% endif %}
                 {% if card.author %}
                 <span class="card-author">{{ card.author }}</span>
                 {% endif %}
@@ -86,10 +78,10 @@
     <div class="card-field">
         <div class="card-field-label">Primary UDC</div>
         <div class="card-field-value">
-            <span class="card-udc">
-                <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}" class="card-udc">
+                <span class="card-udc-number">{{ card.classification.primary }}</span>
                 {% if ref %}<span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>{% endif %}
-            </span>
+            </a>
         </div>
     </div>
     {% endif %}
@@ -98,10 +90,10 @@
         <div class="card-field-label">Secondary UDC</div>
         <div class="card-field-value tag-list">
             {% for sec in card.classification.secondary %}
-            <span class="card-udc">
-                <a href="{{ url_for('browse', udc_number=sec) }}">{{ sec }}</a>
+            <a href="{{ url_for('browse', udc_number=sec) }}" class="card-udc">
+                <span class="card-udc-number">{{ sec }}</span>
                 {% if ref %}<span class="card-udc-label">{{ ref.get_label(sec) }}</span>{% endif %}
-            </span>
+            </a>
             {% endfor %}
         </div>
     </div>

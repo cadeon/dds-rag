@@ -13,6 +13,7 @@
     --accent-green: #4a7c59;
     --accent-red: #8b3a3a;
     --accent-gold: #c9a84c;
+    --accent-blue: #4a6b8c;
     --drawer-bg: #3d2517;
     --drawer-front: #6b4423;
     --label-cream: #f5e6c8;
@@ -325,7 +326,13 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 0;
+    z-index: 1;
+}
+
+.catalog-card .no-overlay {
+    position: relative;
+    z-index: 2;
+    pointer-events: auto;
 }
 
 .catalog-card::before {
@@ -340,9 +347,9 @@ body {
     pointer-events: none;
 }
 
-.catalog-card > * {
+.catalog-card > *:not(.catalog-card-link) {
     position: relative;
-    z-index: 1;
+    z-index: 0;
 }
 
 .catalog-card:hover {
@@ -394,6 +401,13 @@ body {
     padding: 0.15rem 0.4rem;
     border-radius: 2px;
     text-transform: lowercase;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.card-tag:hover {
+    background: var(--wood-medium);
+    color: var(--card-cream);
 }
 
 .card-topic {
@@ -445,6 +459,11 @@ body {
     line-height: 1.3;
 }
 
+.catalog-card .card-title {
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem 0;
+}
+
 .card-title a {
     color: inherit;
     text-decoration: none;
@@ -471,21 +490,22 @@ body {
     align-items: baseline;
     gap: 0.4rem;
     flex-wrap: wrap;
-}
-
-.card-udc a {
-    color: var(--ink-black);
     text-decoration: none;
+    transition: all 0.2s;
 }
 
-.card-udc a:hover {
-    color: var(--accent-gold);
+.card-udc:hover {
+    background: var(--wood-light);
+    color: var(--ink-black);
 }
 
-.card-udc-label {
+.card-udc .card-udc-number {
+    font-weight: bold;
+}
+
+.card-udc .card-udc-label {
     font-family: var(--font-serif);
     font-size: 0.85rem;
-    color: var(--ink-gray);
     font-weight: normal;
     overflow-wrap: break-word;
     word-break: break-word;
@@ -639,7 +659,7 @@ body {
 
 /* RAG view - raw card markdown */
 .rag-view {
-    background: var(--card-cream);
+    background: white;
     border: 1px solid var(--wood-light);
     border-radius: 3px;
     padding: 1rem;
@@ -791,6 +811,10 @@ body {
     color: var(--ink-faded);
 }
 
+.breadcrumb-current {
+    color: var(--wood-pale);
+}
+
 /* Pagination */
 .pagination {
     display: flex;
@@ -865,6 +889,19 @@ body {
     letter-spacing: 0.1em;
     border-top: 1px solid var(--wood-medium);
     margin-top: 3rem;
+}
+
+.catalog-footer a {
+    color: var(--wood-pale);
+    text-decoration: none;
+}
+
+.catalog-footer a:visited {
+    color: var(--wood-pale);
+}
+
+.catalog-footer a:hover {
+    color: var(--accent-gold);
 }
 
 /* Responsive */
