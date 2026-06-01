@@ -346,16 +346,6 @@ body {
     border-bottom: 1px solid var(--wood-pale);
 }
 
-.card-udc {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    background: var(--wood-pale);
-    color: var(--ink-black);
-    padding: 0.2rem 0.5rem;
-    border-radius: 2px;
-    white-space: nowrap;
-}
-
 .card-format {
     font-family: var(--font-sans);
     font-size: 0.7rem;
@@ -450,13 +440,14 @@ body {
 
 .card-udc {
     font-family: var(--font-mono);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: bold;
     background: var(--wood-pale);
     padding: 0.25rem 0.6rem;
     border-radius: 3px;
     border: 1px solid var(--wood-light);
     color: var(--ink-black);
+    white-space: nowrap;
 }
 
 .card-udc a {

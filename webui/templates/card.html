@@ -108,8 +108,11 @@
             {% if card.classification.primary %}
             <div class="card-field">
                 <div class="card-field-label">Primary UDC</div>
-                <div class="card-field-value tag-list">
-                    <a href="{{ url_for('browse', udc_number=card.classification.primary) }}" class="card-tag" title="{{ ref.get_label(card.classification.primary) if ref else '' }}">{{ card.classification.primary }}</a>
+                <div class="card-field-value">
+                    <span class="card-udc">
+                        <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+                        {% if ref %}<span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>{% endif %}
+                    </span>
                 </div>
             </div>
             {% endif %}
@@ -118,7 +121,10 @@
                 <div class="card-field-label">Secondary UDC</div>
                 <div class="card-field-value tag-list">
                     {% for sec in card.classification.secondary %}
-                    <a href="{{ url_for('browse', udc_number=sec) }}" class="card-tag" title="{{ ref.get_label(sec) if ref else '' }}">{{ sec }}</a>
+                    <span class="card-udc">
+                        <a href="{{ url_for('browse', udc_number=sec) }}">{{ sec }}</a>
+                        {% if ref %}<span class="card-udc-label">{{ ref.get_label(sec) }}</span>{% endif %}
+                    </span>
                     {% endfor %}
                 </div>
             </div>
