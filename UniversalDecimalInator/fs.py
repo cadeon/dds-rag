@@ -8,10 +8,105 @@ from pathlib import Path
 
 import yaml
 
-from UniversalDecimalInator.models import Card, UDCClassification, Source, CARD_FORMAT_VERSION
+from UniversalDecimalInator.models import Card, UDCClassification, Source, Artifact, CARD_FORMAT_VERSION
 from UniversalDecimalInator.reference import ClassificationReference
 
 logger = logging.getLogger(__name__)
+
+
+def _download_image(url: str, dest_dir: Path, index: int) -> tuple[Path | None, str]:
+    """Download an image to the artifact directory. Returns (path, filename) or (None, '')."""
+    import mimetypes
+    ext = mimetypes.guess_extension(_guess_mime_from_url(url)) or ".jpg"
+    filename = f"image_{index:03d}{ext}"
+    dest = dest_dir / filename
+    try:
+        import requests
+        resp = requests.get(url, timeout=30, headers={"User-Agent": "UniversalDecimalInator/1.0"})
+        resp.raise_for_status()
+        dest.write_bytes(resp.content)
+        return dest, filename
+    except Exception as e:
+        logger.debug("Failed to download image %s: %s", url, e)
+        return None, ""
+
+
+def _describe_image_vlm(image_path: Path) -> str:
+    """Describe an image using the configured VLM endpoint.
+
+    Reads VLM config from config.yaml under 'vlm' key:
+      vlm:
+        endpoint: "https://vlm.example.com/v1"
+        model: "some-vision-model"
+
+    Returns empty string if VLM is not configured or call fails.
+    """
+    import json
+    import os
+    import yaml
+
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        os.pardir, "config.yaml",
+    )
+    try:
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+    except Exception:
+        return ""
+
+    vlm_cfg = config.get("vlm", {})
+    if not vlm_cfg.get("endpoint"):
+        return ""
+
+    import base64
+    import urllib.request
+
+    endpoint = vlm_cfg["endpoint"]
+    model = vlm_cfg.get("model", "")
+
+    try:
+        with open(image_path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Briefly describe what you see in this image in 1-2 sentences."},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                    ],
+                }
+            ],
+            "max_tokens": 100,
+        }
+        req = urllib.request.Request(
+            f"{endpoint}/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode())
+        return data["choices"][0]["message"]["content"].strip()
+
+    except Exception as e:
+        logger.debug("VLM description failed for %s: %s", image_path, e)
+        return ""
+
+
+def _guess_mime_from_url(url: str) -> str:
+    """Guess MIME type from URL extension."""
+    ext = url.rsplit(".", 1)[-1].lower().split("?")[0]
+    types = {
+        "jpg": "image/jpeg", "jpeg": "image/jpeg",
+        "png": "image/png", "gif": "image/gif",
+        "webp": "image/webp", "svg": "image/svg+xml",
+        "bmp": "image/bmp", "tiff": "image/tiff",
+    }
+    return types.get(ext, "image/jpeg")
 
 
 def card_to_markdown(card: Card) -> str:
@@ -85,6 +180,17 @@ def card_to_markdown(card: Card) -> str:
             src_lines.append(f"Author: {card.author}")
         body_parts.append("\n".join(src_lines))
 
+    # Artifacts section — associated files with descriptions for RAG context
+    if card.artifacts:
+        art_lines = ["## Artifacts"]
+        for art in card.artifacts:
+            art_lines.append(f"- **{art.filename}** ({art.mime_type})")
+            if art.description:
+                art_lines.append(f"  {art.description}")
+            if art.uri:
+                art_lines.append(f"  source: {art.uri}")
+        body_parts.append("\n".join(art_lines))
+
     return f"---\n{fm}---\n\n" + "\n\n".join(body_parts)
 
 
@@ -135,12 +241,23 @@ def write_card(card: Card, kb_path: str | Path, ref: ClassificationReference) ->
     # Card file: <kb>/content/<classification_path>/<card_id>.md
     card_dir = kb / "content" / cls_path
     card_dir.mkdir(parents=True, exist_ok=True)
-    card_path = card_dir / f"{card.id}.md"
-    card_path.write_text(card_to_markdown(card))
 
     # Artifact directory: <kb>/artifacts/<classification_path>/<card_id>/
     artifact_dir = kb / "artifacts" / cls_path / card.id
     artifact_dir.mkdir(parents=True, exist_ok=True)
+
+    # Download images and generate VLM descriptions for artifacts
+    for idx, art in enumerate(card.artifacts):
+        if art.uri and not art.filename:
+            img_path, filename = _download_image(art.uri, artifact_dir, idx)
+            if img_path:
+                art.filename = filename
+                # Generate VLM description
+                art.description = _describe_image_vlm(img_path)
+                logger.info("Artifact %s: %s", art.filename, art.description or "(no VLM)")
+
+    card_path = card_dir / f"{card.id}.md"
+    card_path.write_text(card_to_markdown(card))
 
     return card_path
 

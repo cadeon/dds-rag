@@ -43,6 +43,39 @@ class UDCClassification:
 
 
 @dataclass
+class Artifact:
+    """An artifact file associated with a Card (image, screenshot, etc.).
+
+    Artifacts are stored in kb/artifacts/<classification_path>/<card_id>/
+    and referenced here with a description for RAG context.
+    """
+
+    filename: str = ""  # e.g. "image_001.jpg"
+    mime_type: str = ""  # e.g. "image/jpeg"
+    uri: str = ""  # Original source URL
+    description: str = ""  # VLM-generated description for RAG context
+
+    def to_dict(self) -> dict:
+        d = {"filename": self.filename}
+        if self.mime_type:
+            d["mime_type"] = self.mime_type
+        if self.uri:
+            d["uri"] = self.uri
+        if self.description:
+            d["description"] = self.description
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Artifact":
+        return cls(
+            filename=d.get("filename", ""),
+            mime_type=d.get("mime_type", ""),
+            uri=d.get("uri", ""),
+            description=d.get("description", ""),
+        )
+
+
+@dataclass
 class Source:
     """A source document or artifact reference for a Card.
 
@@ -85,6 +118,7 @@ class Card:
     tags: list[str] = field(default_factory=list)
     topics: list[str] = field(default_factory=list)
     sources: list[Source] = field(default_factory=list)
+    artifacts: list[Artifact] = field(default_factory=list)
     author: str = ""
     created_at: str = ""
     updated_at: str = ""
@@ -119,6 +153,8 @@ class Card:
         }
         if self.sources:
             d["sources"] = [s.to_dict() for s in self.sources]
+        if self.artifacts:
+            d["artifacts"] = [a.to_dict() for a in self.artifacts]
         if self.format:
             d["format"] = self.format
         if self.udc_label:
@@ -144,6 +180,14 @@ class Card:
         source_url = d.get("source_url", "")
         if source_url and not sources:
             sources.append(Source(type="url", uri=source_url))
+
+        artifacts = []
+        raw_artifacts = d.get("artifacts", [])
+        if raw_artifacts:
+            for a in raw_artifacts:
+                if isinstance(a, dict):
+                    artifacts.append(Artifact.from_dict(a))
+
         return cls(
             id=d["id"],
             title=d.get("title", ""),
@@ -152,6 +196,7 @@ class Card:
             tags=d.get("tags", []),
             topics=d.get("topics", []),
             sources=sources,
+            artifacts=artifacts,
             source_url=source_url,
             author=d.get("author", ""),
             created_at=d.get("created_at", ""),

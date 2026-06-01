@@ -31,12 +31,19 @@ def _try_readability(html: str) -> str | None:
         return None
 
 
-def extract_html(html: str, url: str = "") -> str:
-    """Extract readable text from HTML content.
+def extract_html(html: str, url: str = "") -> tuple[str, list[dict]]:
+    """Extract readable text and image info from HTML content.
 
     Tries readability first for article-focused extraction, falls back to
     BeautifulSoup with aggressive noise removal.
+
+    Returns (text, images) where images is a list of dicts with keys:
+      - src: image URL (absolute)
+      - alt: alt text
+      - content_type: inferred MIME type
     """
+    images = []
+
     # Try readability for article content
     summary = _try_readability(html)
     if summary:
@@ -45,8 +52,24 @@ def extract_html(html: str, url: str = "") -> str:
         for tag_name in ["nav", "header", "footer", "aside"]:
             for element in soup.find_all(tag_name):
                 element.decompose()
-        # Preserve img alt text
+        # Extract images before removing them
         for img in soup.find_all("img"):
+            src = img.get("src", "")
+            if isinstance(src, list):
+                src = src[0] if src else ""
+            src = str(src).strip()
+            if src:
+                # Make absolute URL
+                src = _make_absolute(src, url)
+                alt = img.get("alt", "")
+                if isinstance(alt, list):
+                    alt = alt[0] if alt else ""
+                alt = str(alt).strip()
+                images.append({
+                    "src": src,
+                    "alt": alt,
+                    "content_type": _guess_image_type(src),
+                })
             alt = img.get("alt", "")
             if isinstance(alt, list):
                 alt = alt[0] if alt else ""
@@ -56,7 +79,7 @@ def extract_html(html: str, url: str = "") -> str:
             else:
                 img.decompose()
         text = soup.get_text(separator="\n", strip=True)
-        return clean_text(text)
+        return clean_text(text), images
 
     # Fallback: BeautifulSoup with noise removal
     soup = BeautifulSoup(html, "html.parser")
@@ -74,8 +97,23 @@ def extract_html(html: str, url: str = "") -> str:
     for element in soup.find_all(class_=re.compile(r"ad|menu|sidebar|social|share|cookie|popup|modal", re.I)):
         element.decompose()
 
-    # Handle images — preserve alt text before removing
+    # Extract images before removing
     for img in soup.find_all("img"):
+        src = img.get("src", "")
+        if isinstance(src, list):
+            src = src[0] if src else ""
+        src = str(src).strip()
+        if src:
+            src = _make_absolute(src, url)
+            alt = img.get("alt", "")
+            if isinstance(alt, list):
+                alt = alt[0] if alt else ""
+            alt = str(alt).strip()
+            images.append({
+                "src": src,
+                "alt": alt,
+                "content_type": _guess_image_type(src),
+            })
         alt = img.get("alt", "")
         if isinstance(alt, list):
             alt = alt[0] if alt else ""
@@ -91,7 +129,38 @@ def extract_html(html: str, url: str = "") -> str:
 
     # Extract text with sensible separators
     text = soup.get_text(separator="\n", strip=True)
-    return clean_text(text)
+    return clean_text(text), images
+
+
+def _make_absolute(url: str, base_url: str) -> str:
+    """Convert relative URL to absolute."""
+    if url.startswith(("http://", "https://", "data:")):
+        return url
+    if url.startswith("//"):
+        return "https:" + url
+    if url.startswith("/"):
+        # Extract scheme and host from base
+        if base_url.startswith("https://"):
+            return "https://" + base_url.split("//", 1)[1].split("/", 1)[0] + url
+        elif base_url.startswith("http://"):
+            return "http://" + base_url.split("//", 1)[1].split("/", 1)[0] + url
+    else:
+        # Relative path
+        base_dir = base_url.rsplit("/", 1)[0]
+        return base_dir + "/" + url
+    return url
+
+
+def _guess_image_type(url: str) -> str:
+    """Guess MIME type from URL extension."""
+    ext = url.rsplit(".", 1)[-1].lower().split("?")[0]
+    types = {
+        "jpg": "image/jpeg", "jpeg": "image/jpeg",
+        "png": "image/png", "gif": "image/gif",
+        "webp": "image/webp", "svg": "image/svg+xml",
+        "bmp": "image/bmp", "tiff": "image/tiff",
+    }
+    return types.get(ext, "image/jpeg")
 
 
 def extract_pdf(pdf_data: bytes) -> str:
@@ -127,13 +196,16 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
-def fetch_url(url: str, user_agent: str = "UniversalDecimalInator/1.0") -> str:
+def fetch_url(url: str, user_agent: str = "UniversalDecimalInator/1.0") -> tuple[str, list[dict]]:
     """Fetch a URL and extract readable text content.
 
     Auto-detects content type and uses the appropriate extractor:
     - text/html: extract_html()
     - application/pdf: extract_pdf()
     - text/plain or other: clean_text()
+
+    Returns (text, images) where images is a list of image info dicts
+    (empty list for non-HTML content).
     """
     headers = {
         "User-Agent": user_agent,
@@ -145,12 +217,12 @@ def fetch_url(url: str, user_agent: str = "UniversalDecimalInator/1.0") -> str:
     content_type = resp.headers.get("Content-Type", "").lower()
 
     if "application/pdf" in content_type:
-        return extract_pdf(resp.content)
+        return extract_pdf(resp.content), []
     elif "text/html" in content_type:
         return extract_html(resp.text, url)
     else:
-        return clean_text(resp.text)
+        return clean_text(resp.text), []
 
 
-# Legacy aliases for backward compatibility
+# Legacy alias for backward compatibility — returns (text, images) tuple now.
 strip_html = extract_html

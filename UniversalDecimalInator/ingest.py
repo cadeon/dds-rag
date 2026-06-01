@@ -21,9 +21,10 @@ def ingest(
     ref: ClassificationReference,
     source_url: str = "",
     author: str = "",
+    image_info: list[dict] | None = None,
 ) -> Card:
     writer = CardWriter(reference=ref)
-    card = writer.write_card(title, content, source_url, author, kb_path=kb_path)
+    card = writer.write_card(title, content, source_url, author, kb_path=kb_path, image_info=image_info)
     write_card(card, kb_path, ref)
     logger.info("Ingested: %s -> %s", title, card.classification.primary)
     return card
@@ -35,9 +36,9 @@ def ingest_url(
     ref: ClassificationReference,
     author: str = "",
 ) -> Card:
-    content = fetch_url(url)
+    content, image_info = fetch_url(url)
     title = url.split("/")[-1] or url
-    return ingest(title, content, kb_path, ref, source_url=url, author=author)
+    return ingest(title, content, kb_path, ref, source_url=url, author=author, image_info=image_info)
 
 
 def ingest_batch(

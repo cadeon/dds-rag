@@ -9,12 +9,102 @@ import re
 import uuid
 from pathlib import Path
 
+import requests
 import yaml
 
-from UniversalDecimalInator.models import Card, UDCClassification, Source
+from UniversalDecimalInator.models import Card, UDCClassification, Source, Artifact
 from UniversalDecimalInator.reference import ClassificationReference
 
 logger = logging.getLogger(__name__)
+
+
+def _describe_image_vlm(image_path: Path) -> str:
+    """Describe an image using the configured VLM endpoint.
+
+    Reads VLM config from config.yaml under 'vlm' key:
+      vlm:
+        endpoint: "https://vlm.example.com/v1"
+        model: "some-vision-model"
+
+    Returns empty string if VLM is not configured or call fails.
+    """
+    config = _load_config()
+    vlm_cfg = config.get("vlm", {})
+    if not vlm_cfg.get("endpoint"):
+        return ""
+
+    import base64
+
+    endpoint = vlm_cfg["endpoint"]
+    model = vlm_cfg.get("model", "")
+    api_key = vlm_cfg.get("api_key", "")
+
+    try:
+        with open(image_path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Briefly describe what you see in this image in 1-2 sentences."},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                    ],
+                }
+            ],
+            "max_tokens": 100,
+        }
+        if api_key:
+            payload["api_key"] = api_key
+
+        import urllib.request
+        import urllib.error
+
+        req = urllib.request.Request(
+            f"{endpoint}/chat/completions",
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode())
+        return data["choices"][0]["message"]["content"].strip()
+
+    except Exception as e:
+        logger.debug("VLM description failed for %s: %s", image_path, e)
+        return ""
+
+
+def _download_image(url: str, dest_dir: Path, index: int) -> Path | None:
+    """Download an image to the artifact directory. Returns path or None."""
+    import mimetypes
+    ext = mimetypes.guess_extension(
+        _guess_mime_from_url(url),
+    ) or ".jpg"
+    filename = f"image_{index:03d}{ext}"
+    dest = dest_dir / filename
+    try:
+        resp = requests.get(url, timeout=30, headers={"User-Agent": "UniversalDecimalInator/1.0"})
+        resp.raise_for_status()
+        dest.write_bytes(resp.content)
+        return dest
+    except Exception as e:
+        logger.debug("Failed to download image %s: %s", url, e)
+        return None
+
+
+def _guess_mime_from_url(url: str) -> str:
+    """Guess MIME type from URL extension."""
+    ext = url.rsplit(".", 1)[-1].lower().split("?")[0]
+    types = {
+        "jpg": "image/jpeg", "jpeg": "image/jpeg",
+        "png": "image/png", "gif": "image/gif",
+        "webp": "image/webp", "svg": "image/svg+xml",
+        "bmp": "image/bmp", "tiff": "image/tiff",
+    }
+    return types.get(ext, "image/jpeg")
 
 SYSTEM_PROMPT = """You are a classification expert. Given a document, classify it using Universal Decimal Classification (UDC).
 
@@ -115,7 +205,7 @@ class CardWriter:
     def __init__(self, reference: ClassificationReference):
         self.reference = reference
 
-    def write_card(self, title: str, content: str, source_url: str = "", author: str = "", format: str = "url_fetch", kb_path: str | Path | None = None) -> Card:
+    def write_card(self, title: str, content: str, source_url: str = "", author: str = "", format: str = "url_fetch", kb_path: str | Path | None = None, image_info: list[dict] | None = None) -> Card:
         result = _classify_with_llm(title, content, self.reference)
 
         cls_data = result.get("classification", {})
@@ -133,6 +223,17 @@ class CardWriter:
         if source_url:
             sources.append(Source(type="url", uri=source_url))
 
+        # Build artifacts list from image info
+        artifacts = []
+        if image_info:
+            for img in image_info:
+                artifacts.append(Artifact(
+                    filename=img.get("filename", ""),
+                    mime_type=img.get("content_type", "image/jpeg"),
+                    uri=img.get("src", img.get("uri", "")),
+                    description=img.get("description", ""),
+                ))
+
         # Look up human-readable UDC label
         udc_label = self.reference.get_label(primary)
 
@@ -148,6 +249,7 @@ class CardWriter:
             tags=result.get("tags", []),
             topics=result.get("topics", []),
             sources=sources,
+            artifacts=artifacts,
             source_url=source_url,
             author=author,
             content=content,
