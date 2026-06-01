@@ -92,11 +92,10 @@ body {
 }
 
 .catalog-subtitle {
-    font-family: var(--font-sans);
-    font-size: 0.85rem;
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-size: 0.95rem;
     color: var(--wood-pale);
-    letter-spacing: 0.3em;
-    text-transform: uppercase;
+    letter-spacing: 0.15em;
     opacity: 0.8;
 }
 
@@ -542,6 +541,78 @@ body {
     font-family: var(--font-serif);
     font-size: 1rem;
     line-height: 1.6;
+}
+
+/* Classification badges */
+.classification-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.class-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 3px;
+}
+
+.class-item-primary {
+    background: rgba(0,0,0,0.03);
+}
+
+.class-item-secondary {
+    background: rgba(0,0,0,0.02);
+    opacity: 0.7;
+}
+
+.class-badge {
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.4rem;
+    border-radius: 2px;
+    font-weight: bold;
+}
+
+.primary-badge {
+    background: var(--wood-medium);
+    color: var(--card-cream);
+}
+
+.secondary-badge {
+    background: var(--wood-light);
+    color: var(--ink-gray);
+}
+
+.class-number a {
+    font-weight: bold;
+    color: var(--ink-dark);
+    text-decoration: none;
+}
+
+.class-number a:hover {
+    text-decoration: underline;
+}
+
+.class-label {
+    font-size: 0.85rem;
+    color: var(--ink-gray);
+}
+
+/* Secondary card marker on browse */
+.card-udc-secondary {
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--wood-light);
+    color: var(--ink-gray);
+    padding: 0.1rem 0.35rem;
+    border-radius: 2px;
+    margin-left: 0.5rem;
 }
 
 /* Document text */
