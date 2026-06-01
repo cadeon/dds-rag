@@ -36,6 +36,13 @@ def ingest_url(
     ref: ClassificationReference,
     author: str = "",
 ) -> Card:
+    # Check for existing card with same source URL
+    from UniversalDecimalInator.fs import list_cards
+    for existing in list_cards(kb_path):
+        for src in existing.sources or []:
+            if src.uri == url:
+                logger.info("Duplicate: %s already exists as %s", url, existing.id)
+                return existing
     content, image_info = fetch_url(url)
     title = url.split("/")[-1] or url
     return ingest(title, content, kb_path, ref, source_url=url, author=author, image_info=image_info)

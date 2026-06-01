@@ -52,7 +52,6 @@ def _is_noise_image(src: str, alt: str, img_tag) -> bool:
     # Skip Wikipedia infobox noise: red pog markers, flags, coat of arms
     wp_noise = [
         "Red_pog.svg", "Flag_of_", "Coat_of_arms", "Arms_of_",
-        "Blank_map", "Location_map_", "_location_map",
     ]
     if any(p in src for p in wp_noise):
         return True
