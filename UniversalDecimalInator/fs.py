@@ -178,9 +178,8 @@ def cards_by_classification(kb_path: str | Path, classification: str, ref: Class
     for card in cards:
         card_base = ref.strip_facets(ref.first_component(card.classification.primary))
         card_primary = ref.strip_facets(card.classification.primary)
-        # Match if: same first component, exact primary match, primary is a child of target,
-        # or target appears in secondary classifications
-        is_child = card_primary.startswith(classification + ".") or card_primary == classification
+        ancestor_nums = [num for num, _ in ref.get_ancestors(card_primary)]
+        is_child = card_primary == classification or classification in ancestor_nums
         if card_base == target_base or is_child or classification in card.classification.secondary:
             result.append(card)
     return result

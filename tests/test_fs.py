@@ -278,6 +278,23 @@ class TestCardsByClassification:
         assert "parent-card" in ids
         assert "child-card" in ids
 
+    def test_single_digit_parent(self, kb, ref):
+        """Cards under single-digit parents (e.g. 9 -> 914) must match via ancestors, not string prefix."""
+        card = Card(
+            id="geo-card",
+            title="Geography",
+            classification=UDCClassification(primary="914"),
+            content="Commune in France",
+        )
+        write_card(card, kb, ref)
+        cards = cards_by_classification(kb, "9", ref)
+        assert len(cards) == 1
+        assert cards[0].id == "geo-card"
+
+        # Should NOT appear under unrelated classification
+        cards = cards_by_classification(kb, "7", ref)
+        assert cards == []
+
 
 class TestSearchCards:
     def test_search_by_title(self, sample_card, kb, ref):
