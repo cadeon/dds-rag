@@ -155,6 +155,8 @@ def card_to_markdown(card: Card) -> str:
     }
     if card.sources:
         frontmatter["sources"] = [s.to_dict() for s in card.sources]
+    if card.artifacts:
+        frontmatter["artifacts"] = [a.to_dict() for a in card.artifacts]
     if card.format:
         frontmatter["format"] = card.format
     if card.udc_label:
