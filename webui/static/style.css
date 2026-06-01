@@ -315,9 +315,17 @@ body {
         inset 0 0 20px rgba(196, 154, 108, 0.1);
     position: relative;
     transition: all 0.2s;
-    text-decoration: none;
     color: var(--ink-black);
     display: block;
+}
+
+.catalog-card-link {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
 }
 
 .catalog-card::before {
@@ -330,6 +338,11 @@ body {
     border: 1px solid var(--wood-pale);
     border-radius: 2px;
     pointer-events: none;
+}
+
+.catalog-card > * {
+    position: relative;
+    z-index: 1;
 }
 
 .catalog-card:hover {
@@ -430,6 +443,15 @@ body {
     color: var(--ink-black);
     margin: 0 0 0.5rem 0;
     line-height: 1.3;
+}
+
+.card-title a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.card-title a:hover {
+    color: var(--accent-blue);
 }
 
 .card-detail .card-meta {
