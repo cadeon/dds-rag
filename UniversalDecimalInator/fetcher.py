@@ -20,12 +20,22 @@ logger = logging.getLogger(__name__)
 def _try_readability(html: str) -> str | None:
     """Try to extract article content using readability.
 
-    Returns None if readability is not available or fails.
+    Returns None if readability is not available, fails, or returns empty content.
     """
     try:
         from readability import Document
         doc = Document(html)
-        return doc.summary()
+        summary = doc.summary()
+        # Check if summary has actual content (not just empty HTML)
+        if not summary or summary.strip() in ('', '<html><body></body></html>'):
+            return None
+        # Check if summary has meaningful text content
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(summary, 'html.parser')
+        text = soup.get_text(strip=True)
+        if len(text) < 50:  # Require at least 50 chars of actual content
+            return None
+        return summary
     except Exception as e:
         logger.debug("readability extraction failed: %s", e)
         return None
@@ -38,6 +48,13 @@ def _is_noise_image(src: str, alt: str, img_tag) -> bool:
         return True
     # Skip math equation renders from Wikimedia
     if "wikimedia.org/api/rest_v1/media/math/render" in src:
+        return True
+    # Skip Wikipedia infobox noise: red pog markers, flags, coat of arms
+    wp_noise = [
+        "Red_pog.svg", "Flag_of_", "Coat_of_arms", "Arms_of_",
+        "Blank_map", "Location_map_", "_location_map",
+    ]
+    if any(p in src for p in wp_noise):
         return True
     # Skip known noise patterns in URLs
     noise_patterns = [
@@ -118,6 +135,13 @@ def extract_html(html: str, url: str = "") -> tuple[str, list[dict]]:
 
     # Fallback: BeautifulSoup with noise removal
     soup = BeautifulSoup(html, "html.parser")
+
+    # Wikipedia-specific: extract from mw-content-text if readability failed
+    mw_body = soup.find("div", {"id": "mw-content-text"})
+    if mw_body:
+        content_div = mw_body.find("div", {"class": "mw-parser-output"})
+        if content_div:
+            soup = content_div
 
     # Remove script, style, and other noise elements
     for element in soup.find_all(["script", "style", "noscript", "iframe", "svg", "noscript"]):
