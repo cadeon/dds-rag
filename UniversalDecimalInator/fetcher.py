@@ -73,15 +73,15 @@ def _is_noise_image(src: str, alt: str, img_tag) -> bool:
             val = img_tag.get(attr, "")
             if isinstance(val, str):
                 try:
-                    if int(val) <= 5:
+                    if int(val) <= 40:
                         return True
                 except ValueError:
                     pass
-    # Skip Wikimedia thumbnails that are tiny (20px-40px) — infobox decorations
+    # Skip Wikimedia thumbnails that are tiny (<=50px) — infobox decorations
     wm_match = re.search(r'/(\d+)px-', src)
     if wm_match:
         thumb_size = int(wm_match.group(1))
-        if thumb_size <= 40:
+        if thumb_size <= 50:
             return True
     return False
 
@@ -136,6 +136,32 @@ def extract_html(html: str, url: str = "") -> tuple[str, list[dict]]:
             else:
                 img.decompose()
         text = soup.get_text(separator="\n", strip=True)
+        # If readability found no images, also check original HTML for article images
+        if not images:
+            orig_soup = BeautifulSoup(html, "html.parser")
+            mw_body = orig_soup.find("div", {"id": "mw-content-text"})
+            if mw_body:
+                content_div = mw_body.find("div", {"class": "mw-parser-output"})
+                if content_div:
+                    for img in content_div.find_all("img"):
+                        src = img.get("src", "")
+                        if isinstance(src, list):
+                            src = src[0] if src else ""
+                        src = str(src).strip()
+                        if src:
+                            src = _make_absolute(src, url)
+                            alt = img.get("alt", "")
+                            if isinstance(alt, list):
+                                alt = alt[0] if alt else ""
+                            alt = str(alt).strip()
+                            if not _is_noise_image(src, alt, img):
+                                # Deduplicate by src
+                                if not any(i["src"] == src for i in images):
+                                    images.append({
+                                        "src": src,
+                                        "alt": alt,
+                                        "content_type": _guess_image_type(src),
+                                    })
         return clean_text(text), images
 
     # Fallback: BeautifulSoup with noise removal
