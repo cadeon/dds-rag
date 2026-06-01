@@ -210,10 +210,11 @@ class TestWriteCard:
     def test_path_structure(self, sample_card, kb, ref):
         path = write_card(sample_card, kb, ref)
         parts = str(path.relative_to(kb)).split("/")
-        assert parts[0] == "0"           # main class
-        assert parts[1] == "004"         # subdivision
-        assert parts[2] == "004.738.5"   # full classification
-        assert parts[3] == "test-ml.md"  # card uid file
+        assert parts[0] == "content"       # content root
+        assert parts[1] == "0"             # main class
+        assert parts[2] == "004"           # subdivision
+        assert parts[3] == "004.738.5"     # full classification
+        assert parts[4] == "test-ml.md"  # card uid file
 
     def test_creates_artifact_dir(self, sample_card, kb, ref):
         write_card(sample_card, kb, ref)

@@ -447,7 +447,10 @@ body {
     border-radius: 3px;
     border: 1px solid var(--wood-light);
     color: var(--ink-black);
-    white-space: nowrap;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
 }
 
 .card-udc a {
@@ -463,8 +466,9 @@ body {
     font-family: var(--font-serif);
     font-size: 0.85rem;
     color: var(--ink-gray);
-    margin-left: 0.4rem;
     font-weight: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .card-author {

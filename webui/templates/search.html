@@ -38,7 +38,7 @@
                 {% for card in cards %}
                 <a href="{{ url_for('card_detail', card_id=card.id) }}" class="catalog-card">
                     <div class="card-header">
-                        <span class="card-udc"><a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>{% if ref %} <span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>{% endif %}</span>
+                        <span class="card-udc">{{ card.classification.primary }}{% if ref %} <span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>{% endif %}</span>
                     </div>
                     {% if card.title %}
                     <div class="card-title">{{ card.title }}</div>

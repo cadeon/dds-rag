@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import logging
 import os
 import re
-import time
+import uuid
 from pathlib import Path
 
 import yaml
@@ -105,41 +104,9 @@ def _classify_with_llm(title: str, content: str, ref: ClassificationReference) -
     return json.loads(json_match.group())
 
 
-def _make_id(title: str, kb_path: str | Path | None = None) -> str:
-    """Generate a unique card ID from a title.
-
-    Uses a slugified title with a short hash suffix to avoid collisions.
-    If kb_path is provided, checks for existing IDs and appends a counter
-    if the generated ID already exists.
-    """
-    slug = re.sub(r'[^a-z0-9]+', '-', title.lower().strip()).strip('-')[:40]
-    # Add short hash for uniqueness
-    short_hash = hashlib.sha256((title + str(time.time())).encode()).hexdigest()[:6]
-    candidate = f"{slug}-{short_hash}"
-
-    if kb_path:
-        # Check for collisions
-        kb = Path(kb_path)
-        existing = set()
-        for md in kb.rglob("*.md"):
-            if md.name == "README.md" or "/sources/" in str(md) or "/artifacts/" in str(md):
-                continue
-            try:
-                fm_text = md.read_text().split("---", 2)[1] if md.read_text().startswith("---") else ""
-                fm = yaml.safe_load(fm_text)
-                if fm and fm.get("id"):
-                    existing.add(fm["id"])
-            except Exception:
-                pass
-        if candidate not in existing:
-            return candidate
-        # Fallback: keep appending counter
-        counter = 1
-        while f"{candidate}-{counter}" in existing:
-            counter += 1
-        return f"{candidate}-{counter}"
-
-    return candidate
+def _make_id() -> str:
+    """Generate a unique card ID as a UUID4."""
+    return str(uuid.uuid4())
 
 
 class CardWriter:
@@ -169,9 +136,9 @@ class CardWriter:
         # Look up human-readable UDC label
         udc_label = self.reference.get_label(primary)
 
-        # Generate unique ID from the LLM-provided title
+        # Generate unique ID
         final_title = result.get("title", title)
-        card_id = _make_id(final_title, kb_path)
+        card_id = _make_id()
 
         return Card(
             id=card_id,

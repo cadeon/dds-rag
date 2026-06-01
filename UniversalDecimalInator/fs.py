@@ -122,8 +122,8 @@ def write_card(card: Card, kb_path: str | Path, ref: ClassificationReference) ->
     """Write a card to the knowledge base.
 
     Layout:
-      kb/<classification_path>/<card_id>.md           -- card file
-      kb/artifacts/<classification_path>/<card_id>/   -- artifact files for this card
+      kb/content/<classification_path>/<card_id>.md     -- card file
+      kb/artifacts/<classification_path>/<card_id>/     -- artifact files for this card
 
     Card files are named by UID, not classification, so multiple cards
     can share the same classification. Artifacts mirror the classification
@@ -132,8 +132,8 @@ def write_card(card: Card, kb_path: str | Path, ref: ClassificationReference) ->
     kb = Path(kb_path)
     cls_path = ref.udc_to_path(card.classification.primary)
 
-    # Card file: <kb>/<classification_path>/<card_id>.md
-    card_dir = kb / cls_path
+    # Card file: <kb>/content/<classification_path>/<card_id>.md
+    card_dir = kb / "content" / cls_path
     card_dir.mkdir(parents=True, exist_ok=True)
     card_path = card_dir / f"{card.id}.md"
     card_path.write_text(card_to_markdown(card))
@@ -146,7 +146,7 @@ def write_card(card: Card, kb_path: str | Path, ref: ClassificationReference) ->
 
 
 def read_card(kb_path: str | Path, card_id: str) -> Card | None:
-    kb = Path(kb_path)
+    kb = Path(kb_path) / "content"
     for md in kb.rglob("*.md"):
         if md.name == "README.md":
             continue
@@ -158,7 +158,7 @@ def read_card(kb_path: str | Path, card_id: str) -> Card | None:
 
 
 def list_cards(kb_path: str | Path) -> list[Card]:
-    kb = Path(kb_path)
+    kb = Path(kb_path) / "content"
     cards = []
     for md in sorted(kb.rglob("*.md")):
         if md.name == "README.md" or "/sources/" in str(md) or "/artifacts/" in str(md):
@@ -172,41 +172,61 @@ def list_cards(kb_path: str | Path) -> list[Card]:
 
 
 def cards_by_classification(kb_path: str | Path, classification: str, ref: ClassificationReference) -> list[Card]:
-    """Find cards under a classification using directory walk + prefix matching.
+    """Find cards under a classification.
 
-    Walks the kb tree looking for card files whose directory path starts with
-    the classification number (UDC is hierarchical by numeric prefix).
-    Also checks secondary classifications.
+    Walks the kb tree, loading each card and checking:
+    - primary classification matches (exact or prefix for hierarchical UDCs)
+    - primary classification first component matches (for compound UDCs like 352.4:44-2)
+    - secondary classifications match
     """
-    kb = Path(kb_path)
+    kb = Path(kb_path) / "content"
     result = []
     seen = set()
 
     for md in kb.rglob("*.md"):
         if md.name == "README.md" or "/sources/" in str(md) or "/artifacts/" in str(md):
             continue
-        # The leaf directory above the .md file is the primary classification
-        leaf_cls = md.parent.name
-        if leaf_cls.startswith(classification):
-            try:
-                text = md.read_text()
-                card = markdown_to_card(text)
-                if card.id not in seen:
-                    result.append(card)
-                    seen.add(card.id)
-            except Exception:
+        if md.stem in seen:
+            continue
+        try:
+            text = md.read_text()
+            card = markdown_to_card(text)
+        except Exception:
+            continue
+
+        primary = card.classification.primary
+
+        # Exact match
+        if primary == classification:
+            result.append(card)
+            seen.add(card.id)
+            continue
+
+        # Hierarchical prefix match: e.g. browsing 352 matches 352.4, 352.41, etc.
+        # Also handles compound UDCs: browsing 352.4:44-2 matches cards with that exact primary
+        if primary.startswith(classification + ".") or primary.startswith(classification + ":"):
+            result.append(card)
+            seen.add(card.id)
+            continue
+
+        # Ancestor match for single-digit or short numeric parents:
+        # browsing "9" should match "914", browsing "35" should match "352"
+        card_first = ref.first_component(primary)
+        if card_first.startswith(classification) and len(classification) < len(card_first):
+            # Make sure it's a real ancestor, not just a string coincidence
+            # e.g. "9" is ancestor of "914", "35" is ancestor of "352"
+            # Check that the next char after classification is a digit (not a dot/dash)
+            remainder = card_first[len(classification):]
+            if remainder and remainder[0].isdigit():
+                result.append(card)
+                seen.add(card.id)
                 continue
-        elif md.stem not in seen:
-            # Check secondary classifications — requires loading the card
-            try:
-                text = md.read_text()
-                card = markdown_to_card(text)
-                if classification in card.classification.secondary:
-                    if card.id not in seen:
-                        result.append(card)
-                        seen.add(card.id)
-            except Exception:
-                continue
+
+        # Check secondary classifications
+        if classification in card.classification.secondary:
+            result.append(card)
+            seen.add(card.id)
+            continue
 
     return result
 
@@ -236,7 +256,6 @@ def search_cards(kb_path: str | Path, query: str, top_k: int = 10) -> list[Card]
 
 
 def catalog_stats(kb_path: str | Path) -> dict:
-    kb = Path(kb_path)
     cards = list_cards(kb_path)
     total = len(cards)
     main_class_dist: dict[str, int] = {}
