@@ -257,6 +257,27 @@ class TestCardsByClassification:
         cards = cards_by_classification(kb, "530.12", ref)
         assert cards == []
 
+    def test_child_classification_shown(self, kb, ref):
+        """Cards in child classifications should appear when browsing parent."""
+        parent = Card(
+            id="parent-card",
+            title="Parent",
+            classification=UDCClassification(primary="78"),
+            content="Music",
+        )
+        child = Card(
+            id="child-card",
+            title="Child",
+            classification=UDCClassification(primary="78.02"),
+            content="Blues music",
+        )
+        write_card(parent, kb, ref)
+        write_card(child, kb, ref)
+        cards = cards_by_classification(kb, "78", ref)
+        ids = [c.id for c in cards]
+        assert "parent-card" in ids
+        assert "child-card" in ids
+
 
 class TestSearchCards:
     def test_search_by_title(self, sample_card, kb, ref):
