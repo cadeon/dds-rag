@@ -172,16 +172,31 @@ def list_cards(kb_path: str | Path) -> list[Card]:
 
 
 def cards_by_classification(kb_path: str | Path, classification: str, ref: ClassificationReference) -> list[Card]:
-    cards = list_cards(kb_path)
-    target_base = ref.strip_facets(ref.first_component(classification))
+    """Find cards under a classification using directory walk + prefix matching.
+
+    Walks the kb tree looking for card files whose directory path starts with
+    the classification number (UDC is hierarchical by numeric prefix).
+    Also checks secondary classifications.
+    """
+    kb = Path(kb_path)
     result = []
-    for card in cards:
-        card_base = ref.strip_facets(ref.first_component(card.classification.primary))
-        card_primary = ref.strip_facets(card.classification.primary)
-        ancestor_nums = [num for num, _ in ref.get_ancestors(card_primary)]
-        is_child = card_primary == classification or classification in ancestor_nums
-        if card_base == target_base or is_child or classification in card.classification.secondary:
-            result.append(card)
+    seen = set()
+
+    for md in kb.rglob("*.md"):
+        if md.name == "README.md" or "/sources/" in str(md) or "/artifacts/" in str(md):
+            continue
+        # The leaf directory above the .md file is the classification
+        leaf_cls = md.parent.name
+        if leaf_cls.startswith(classification):
+            try:
+                text = md.read_text()
+                card = markdown_to_card(text)
+                if card.id not in seen:
+                    result.append(card)
+                    seen.add(card.id)
+            except Exception:
+                continue
+
     return result
 
 

@@ -80,20 +80,24 @@ def index():
 def browse(udc_number):
     cards = cards_by_classification(KB_PATH, udc_number, ref)
     label = ref.get_label(udc_number)
-    all_children = ref.get_children(udc_number)
-    # Only show children that actually have cards
-    children_with_cards = []
-    for child_num, child_label in all_children:
-        child_cards = cards_by_classification(KB_PATH, child_num, ref)
-        if child_cards:
-            children_with_cards.append((child_num, child_label, len(child_cards)))
+    # Derive sub-classifications from actual cards, not just reference taxonomy
+    # Group cards by their primary classification, exclude exact match with current
+    sub_cls = {}
+    for card in cards:
+        cp = card.classification.primary
+        if cp != udc_number:
+            if cp not in sub_cls:
+                sub_cls[cp] = ref.get_label(cp)
+            sub_cls[cp] = ref.get_label(cp)
+    children = [(cls_num, cls_label, sum(1 for c in cards if c.classification.primary == cls_num))
+                for cls_num, cls_label in sorted(sub_cls.items())]
     ancestors = ref.get_ancestors(udc_number)
     return render_template(
         "browse.html",
         udc_number=udc_number,
         label=label,
         cards=cards,
-        children=children_with_cards,
+        children=children,
         ancestors=ancestors,
     )
 
