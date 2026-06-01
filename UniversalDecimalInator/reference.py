@@ -163,6 +163,9 @@ class ClassificationReference:
         parts_stripped = base_stripped.split(".")
         main = parts_stripped[0][0] if parts_stripped else "0"
         mid = parts_stripped[0] if len(parts_stripped) > 1 else main
+        # Collapse redundant nesting when classification is just the main class digit
+        if base_stripped == main:
+            return f"{main}/{base_stripped}"
         return f"{main}/{mid}/{base}"
 
     def system_prompt(self) -> str:
