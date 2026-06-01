@@ -52,7 +52,7 @@
             {% for child_num, child_label, child_count in children %}
             <a href="{{ url_for('browse', udc_number=child_num) }}" class="drawer">
                 <div class="drawer-header">
-                    <div class="drawer-label">{{ child_num }}</div>
+                    <span class="drawer-tag" title="{{ child_label }}">{{ child_num }}</span>
                     <div class="drawer-title">{{ child_label }}</div>
                 </div>
                 <div class="drawer-count">{{ child_count }} card{{ 's' if child_count != 1 }}</div>
@@ -71,7 +71,7 @@
             {% for card in cards %}
             <a href="{{ url_for('card_detail', card_id=card.id) }}" class="catalog-card">
                 <div class="card-header">
-                    <span class="card-udc">{{ card.classification.primary }}</span>
+                    <span class="card-udc">{{ card.classification.primary }}{% if ref %} — {{ ref.get_label(card.classification.primary) }}{% endif %}</span>
                 </div>
                 {% if card.title %}
                 <div class="card-title">{{ card.title }}</div>

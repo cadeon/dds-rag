@@ -53,7 +53,7 @@
             {% if stats.main_class_distribution.get(udc_num, 0) > 0 %}
             <a href="{{ url_for('browse', udc_number=udc_num) }}" class="drawer">
                 <div class="drawer-header">
-                    <div class="drawer-label">{{ udc_num }}</div>
+                    <span class="drawer-tag" title="{{ label }}">{{ udc_num }}</span>
                     <div class="drawer-title">{{ label }}</div>
                 </div>
                 <div class="drawer-count">
@@ -75,7 +75,7 @@
             {% for card in cards %}
             <a href="{{ url_for('card_detail', card_id=card.id) }}" class="catalog-card">
                 <div class="card-header">
-                    <span class="card-udc">{{ card.classification.primary }}</span>
+                    <span class="card-udc">{{ card.classification.primary }}{% if ref %} — {{ ref.get_label(card.classification.primary) }}{% endif %}</span>
                 </div>
                 {% if card.title %}
                 <div class="card-title">{{ card.title }}</div>

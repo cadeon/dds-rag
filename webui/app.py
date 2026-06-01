@@ -108,7 +108,7 @@ def search():
     cards = []
     if q:
         cards = search_cards(KB_PATH, q)
-    return render_template("search.html", query=q, cards=cards)
+    return render_template("search.html", query=q, cards=cards, ref=ref)
 
 
 @app.route("/card/<card_id>")

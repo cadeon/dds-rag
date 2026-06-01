@@ -267,16 +267,21 @@ body {
     margin-bottom: 0.5rem;
 }
 
-.drawer-label {
-    background: var(--label-cream);
+.drawer-tag {
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    background: var(--wood-pale);
     color: var(--ink-black);
-    padding: 0.4rem 0.8rem;
-    border-radius: 3px;
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 2px;
+    text-decoration: none;
     white-space: nowrap;
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
-    border: 1px solid var(--wood-light);
+    transition: background 0.2s;
+}
+
+.drawer:hover .drawer-tag {
+    background: var(--accent-green);
+    color: white;
 }
 
 .drawer-title {
