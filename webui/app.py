@@ -39,8 +39,9 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
 @app.context_processor
 def utility_processor():
-    """Make utility functions available in all templates."""
-    return dict(card_to_markdown=card_to_markdown)
+    """Make utility functions and common context available in all templates."""
+    from flask import g
+    return dict(card_to_markdown=card_to_markdown, ref=g.get('ref'), stats=g.get('stats'))
 
 # Cache for catalog stats - invalidated on write operations
 _stats_cache: dict | None = None
@@ -73,7 +74,7 @@ def load_context():
 def index():
     main_classes = {k: v for k, v in ref.main_classes.items()}
     cards = list_cards(KB_PATH)[:12]
-    return render_template("index.html", main_classes=main_classes, stats=g.stats, cards=cards, ref=ref)
+    return render_template("index.html", main_classes=main_classes, cards=cards, active_nav="catalog")
 
 
 @app.route("/browse/<udc_number>")
@@ -99,6 +100,7 @@ def browse(udc_number):
         cards=cards,
         children=children,
         ancestors=ancestors,
+        active_nav="catalog",
     )
 
 
@@ -108,7 +110,7 @@ def search():
     cards = []
     if q:
         cards = search_cards(KB_PATH, q)
-    return render_template("search.html", query=q, cards=cards, ref=ref)
+    return render_template("search.html", query=q, cards=cards, active_nav="search", search_query=q)
 
 
 @app.route("/card/<card_id>")
@@ -116,7 +118,7 @@ def card_detail(card_id):
     card = read_card(KB_PATH, card_id)
     if not card:
         return "Card not found", 404
-    return render_template("card.html", card=card, ref=ref)
+    return render_template("card.html", card=card, active_nav="catalog")
 
 
 @app.route("/card/<card_id>/edit", methods=["GET", "POST"])
@@ -149,7 +151,7 @@ def card_edit(card_id):
             write_card(card, KB_PATH, ref)
         invalidate_stats()
         return redirect(url_for("card_detail", card_id=card_id))
-    return render_template("card_edit.html", card=card)
+    return render_template("card_edit.html", card=card, active_nav="catalog")
 
 
 @app.route("/ingest", methods=["GET", "POST"])
@@ -168,7 +170,7 @@ def ingest_page():
         else:
             result = {"error": "Provide either document text or a URL to ingest"}
         invalidate_stats()
-    return render_template("ingest.html", result=result)
+    return render_template("ingest.html", result=result, active_nav="ingest")
 
 
 @app.route("/card/<card_id>/delete", methods=["POST"])

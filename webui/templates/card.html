@@ -1,166 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ card.title or card.id }} - Card Catalog</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <header class="catalog-header">
-        <a href="{{ url_for('index') }}" class="catalog-home"><span class="catalog-title">universalDecimalInator</span></a>
-        <a href="https://github.com/cadeon/dds-rag" class="catalog-github" target="_blank" rel="noopener" title="GitHub">
-            <svg height="26" viewBox="0 0 16 16" width="26" fill="var(--card-cream)">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
-        </a>
-    </header>
+{% extends "base.html" %}
+{% from "_macros.html" import catalog_card %}
 
-    <nav class="nav-bar">
-        <a href="{{ url_for('index') }}" class="nav-link">Card Catalog</a>
-        <a href="{{ url_for('ingest_page') }}" class="nav-link">Ingest</a>
-        <a href="{{ url_for('search') }}" class="nav-link">Search</a>
-        <form action="{{ url_for('search') }}" method="GET" class="search-bar">
-            <input type="text" name="q" class="search-input" placeholder="Search the catalog...">
-            <button type="submit" class="search-btn">Search</button>
-        </form>
-    </nav>
+{% block title %}{{ card.title or card.id }} - Card Catalog{% endblock %}
 
-    <main class="catalog-body">
-        <div class="breadcrumb">
-            <a href="{{ url_for('index') }}">Catalog</a>
-            <span class="breadcrumb-sep">&rsaquo;</span>
-            {% if card.classification.primary and ref %}
-            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">
-                {{ card.classification.primary }} — {{ ref.get_label(card.classification.primary) }}
-            </a>
-            {% else %}
-            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
-            {% endif %}
-            <span class="breadcrumb-sep">&rsaquo;</span>
-            <span>{{ card.id }}</span>
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Catalog</a>
+    <span class="breadcrumb-sep">&rsaquo;</span>
+    {% if card.classification.primary and ref %}
+    <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">
+        {{ card.classification.primary }} — {{ ref.get_label(card.classification.primary) }}
+    </a>
+    {% else %}
+    <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+    {% endif %}
+    <span class="breadcrumb-sep">&rsaquo;</span>
+    <span>{{ card.id }}</span>
+</div>
+
+<div class="card-detail">
+    <div class="card-detail-header">
+        <div class="card-header-left">
+            <h2 class="card-title">{{ card.title or card.id }}</h2>
+            <div class="card-meta">
+                {% if card.classification.primary and ref %}
+                <span class="card-udc">
+                    <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+                    <span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>
+                </span>
+                {% else %}
+                <span class="card-udc">{{ card.classification.primary }}</span>
+                {% endif %}
+                {% if card.author %}
+                <span class="card-author">{{ card.author }}</span>
+                {% endif %}
+                {% if card.updated_at %}
+                <span class="card-updated">Updated {{ card.updated_at[:10] }}</span>
+                {% endif %}
+            </div>
         </div>
+        <div class="card-detail-actions">
+            <a href="{{ url_for('card_edit', card_id=card.id) }}" class="btn btn-primary">Edit Card</a>
+            <form action="{{ url_for('card_delete', card_id=card.id) }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this card?')">Delete</button>
+            </form>
+        </div>
+    </div>
 
-        <div class="card-detail">
-            <div class="card-detail-header">
-                <div class="card-header-left">
-                    <h2 class="card-title">{{ card.title or card.id }}</h2>
-                    <div class="card-meta">
-                        {% if card.classification.primary and ref %}
-                        <span class="card-udc">
-                            <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
-                            <span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>
-                        </span>
-                        {% else %}
-                        <span class="card-udc">{{ card.classification.primary }}</span>
-                        {% endif %}
-                        {% if card.author %}
-                        <span class="card-author">{{ card.author }}</span>
-                        {% endif %}
-                        {% if card.updated_at %}
-                        <span class="card-updated">Updated {{ card.updated_at[:10] }}</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="card-detail-actions">
-                    <a href="{{ url_for('card_edit', card_id=card.id) }}" class="btn btn-primary">Edit Card</a>
-                    <form action="{{ url_for('card_delete', card_id=card.id) }}" method="POST" style="display:inline;">
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this card?')">Delete</button>
-                    </form>
-                </div>
-            </div>
+    {% if card.abstract %}
+    <div class="card-field">
+        <div class="card-field-label">Abstract</div>
+        <div class="card-field-value">{{ card.abstract }}</div>
+    </div>
+    {% endif %}
 
-            {% if card.abstract %}
-            <div class="card-field">
-                <div class="card-field-label">Abstract</div>
-                <div class="card-field-value">{{ card.abstract }}</div>
-            </div>
-            {% endif %}
-
-            {% if card.sources or card.source_url %}
-            <div class="card-field">
-                <div class="card-field-label">Artifacts</div>
-                <div class="card-field-value">
-                    {% for src in card.sources %}
-                    <div class="artifact-item">
-                        <span class="artifact-type">{{ src.type }}</span>
-                        {% if src.uri %}
-                            {% if src.type == 'url' %}
-                            <a href="{{ src.uri }}" target="_blank" rel="noopener">{{ src.uri }}</a>
-                            {% else %}
-                            {{ src.uri }}
-                            {% endif %}
-                        {% endif %}
-                        {% if src.content_type %}
-                        <span class="artifact-meta">{{ src.content_type }}</span>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                    {% if card.source_url and not card.sources %}
-                    <div class="artifact-item">
-                        <a href="{{ card.source_url }}" target="_blank" rel="noopener">{{ card.source_url }}</a>
-                    </div>
+    {% if card.sources or card.source_url %}
+    <div class="card-field">
+        <div class="card-field-label">Artifacts</div>
+        <div class="card-field-value">
+            {% for src in card.sources %}
+            <div class="artifact-item">
+                <span class="artifact-type">{{ src.type }}</span>
+                {% if src.uri %}
+                    {% if src.type == 'url' %}
+                    <a href="{{ src.uri }}" target="_blank" rel="noopener">{{ src.uri }}</a>
+                    {% else %}
+                    {{ src.uri }}
                     {% endif %}
-                </div>
+                {% endif %}
+                {% if src.content_type %}
+                <span class="artifact-meta">{{ src.content_type }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% if card.source_url and not card.sources %}
+            <div class="artifact-item">
+                <a href="{{ card.source_url }}" target="_blank" rel="noopener">{{ card.source_url }}</a>
             </div>
             {% endif %}
-
-            {% if card.classification.primary %}
-            <div class="card-field">
-                <div class="card-field-label">Primary UDC</div>
-                <div class="card-field-value">
-                    <span class="card-udc">
-                        <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
-                        {% if ref %}<span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>{% endif %}
-                    </span>
-                </div>
-            </div>
-            {% endif %}
-            {% if card.classification.secondary %}
-            <div class="card-field">
-                <div class="card-field-label">Secondary UDC</div>
-                <div class="card-field-value tag-list">
-                    {% for sec in card.classification.secondary %}
-                    <span class="card-udc">
-                        <a href="{{ url_for('browse', udc_number=sec) }}">{{ sec }}</a>
-                        {% if ref %}<span class="card-udc-label">{{ ref.get_label(sec) }}</span>{% endif %}
-                    </span>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if card.tags %}
-            <div class="card-field">
-                <div class="card-field-label">Tags</div>
-                <div class="card-field-value tag-list">
-                    {% for tag in card.tags %}
-                    <a href="{{ url_for('search', q=tag) }}" class="card-tag" title="Search for '{{ tag }}'">{{ tag }}</a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            {% if card.topics %}
-            <div class="card-field">
-                <div class="card-field-label">Topics</div>
-                <div class="card-field-value topic-list">
-                    {% for topic in card.topics %}
-                    <a href="{{ url_for('search', q=topic) }}" class="card-topic" title="Search for '{{ topic }}'">{{ topic }}</a>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endif %}
-
-            <div class="card-field">
-                <div class="card-field-label">Raw Card</div>
-                <div class="rag-view">{{ card_to_markdown(card) }}</div>
-            </div>
         </div>
-    </main>
+    </div>
+    {% endif %}
 
-    <footer class="catalog-footer">
-        <a href="https://github.com/cadeon/dds-rag" target="_blank" rel="noopener">GitHub</a> &mdash; <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC-BY-SA 4.0</a> &mdash; UniversalDecimalInator
-    </footer>
-</body>
-</html>
+    {% if card.classification.primary %}
+    <div class="card-field">
+        <div class="card-field-label">Primary UDC</div>
+        <div class="card-field-value">
+            <span class="card-udc">
+                <a href="{{ url_for('browse', udc_number=card.classification.primary) }}">{{ card.classification.primary }}</a>
+                {% if ref %}<span class="card-udc-label">{{ ref.get_label(card.classification.primary) }}</span>{% endif %}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+    {% if card.classification.secondary %}
+    <div class="card-field">
+        <div class="card-field-label">Secondary UDC</div>
+        <div class="card-field-value tag-list">
+            {% for sec in card.classification.secondary %}
+            <span class="card-udc">
+                <a href="{{ url_for('browse', udc_number=sec) }}">{{ sec }}</a>
+                {% if ref %}<span class="card-udc-label">{{ ref.get_label(sec) }}</span>{% endif %}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if card.tags %}
+    <div class="card-field">
+        <div class="card-field-label">Tags</div>
+        <div class="card-field-value tag-list">
+            {% for tag in card.tags %}
+            <a href="{{ url_for('search', q=tag) }}" class="card-tag" title="Search for '{{ tag }}'">{{ tag }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if card.topics %}
+    <div class="card-field">
+        <div class="card-field-label">Topics</div>
+        <div class="card-field-value topic-list">
+            {% for topic in card.topics %}
+            <a href="{{ url_for('search', q=topic) }}" class="card-topic" title="Search for '{{ topic }}'">{{ topic }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card-field">
+        <div class="card-field-label">Raw Card</div>
+        <div class="rag-view">{{ card_to_markdown(card) }}</div>
+    </div>
+</div>
+{% endblock %}
