@@ -185,7 +185,7 @@ def cards_by_classification(kb_path: str | Path, classification: str, ref: Class
     for md in kb.rglob("*.md"):
         if md.name == "README.md" or "/sources/" in str(md) or "/artifacts/" in str(md):
             continue
-        # The leaf directory above the .md file is the classification
+        # The leaf directory above the .md file is the primary classification
         leaf_cls = md.parent.name
         if leaf_cls.startswith(classification):
             try:
@@ -194,6 +194,17 @@ def cards_by_classification(kb_path: str | Path, classification: str, ref: Class
                 if card.id not in seen:
                     result.append(card)
                     seen.add(card.id)
+            except Exception:
+                continue
+        elif md.stem not in seen:
+            # Check secondary classifications — requires loading the card
+            try:
+                text = md.read_text()
+                card = markdown_to_card(text)
+                if classification in card.classification.secondary:
+                    if card.id not in seen:
+                        result.append(card)
+                        seen.add(card.id)
             except Exception:
                 continue
 
